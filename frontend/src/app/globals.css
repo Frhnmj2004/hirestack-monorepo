@@ -40,7 +40,7 @@
   }
 
   html {
-    @apply dark;
+    /* dark mode handled via layout.tsx className="dark" */
   }
 
   body {
@@ -51,12 +51,18 @@
     background-attachment: fixed;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-sans font-semibold tracking-tight;
   }
 }
 
 @layer components {
+
   /* Glassmorphism card */
   .glass-card {
     @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
@@ -69,9 +75,7 @@
 
   /* Sidebar navigation link */
   .nav-link {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
-           text-white/60 hover:text-white hover:bg-white/8 transition-all duration-200
-           cursor-pointer select-none;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/8 transition-all duration-200 cursor-pointer select-none;
   }
 
   .nav-link.active {
@@ -90,32 +94,62 @@
 
   /* Input dark themed */
   .input-dark {
-    @apply bg-white/5 border-white/15 text-white placeholder:text-white/40
-           focus:border-brand-violet focus:ring-1 focus:ring-brand-violet/50
-           transition-all duration-200;
+    @apply bg-white/5 border-white/15 text-white placeholder:text-white/40 focus:border-brand-violet focus:ring-1 focus:ring-brand-violet/50 transition-all duration-200;
   }
 
   /* Status badges */
-  .badge-active { @apply bg-emerald-500/15 text-emerald-400 border-emerald-500/30; }
-  .badge-pending { @apply bg-amber-500/15 text-amber-400 border-amber-500/30; }
-  .badge-rejected { @apply bg-red-500/15 text-red-400 border-red-500/30; }
-  .badge-shortlisted { @apply bg-brand-violet/20 text-brand-lavender border-brand-violet/40; }
-  .badge-interviewed { @apply bg-sky-500/15 text-sky-400 border-sky-500/30; }
+  .badge-active {
+    @apply bg-emerald-500/15 text-emerald-400 border-emerald-500/30;
+  }
+
+  .badge-pending {
+    @apply bg-amber-500/15 text-amber-400 border-amber-500/30;
+  }
+
+  .badge-rejected {
+    @apply bg-red-500/15 text-red-400 border-red-500/30;
+  }
+
+  .badge-shortlisted {
+    @apply bg-brand-violet/20 text-brand-lavender border-brand-violet/40;
+  }
+
+  .badge-interviewed {
+    @apply bg-sky-500/15 text-sky-400 border-sky-500/30;
+  }
 }
 
 @layer utilities {
-  .bg-white\/8 { background-color: rgba(255, 255, 255, 0.08); }
-  .bg-white\/15 { background-color: rgba(255, 255, 255, 0.15); }
-  .border-white\/8 { border-color: rgba(255, 255, 255, 0.08); }
-  .border-white\/15 { border-color: rgba(255, 255, 255, 0.15); }
+  .bg-white\/8 {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .bg-white\/15 {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .border-white\/8 {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .border-white\/15 {
+    border-color: rgba(255, 255, 255, 0.15);
+  }
 
   /* Scrollbar styling */
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: rgba(90, 70, 218, 0.4) transparent;
   }
-  .scrollbar-thin::-webkit-scrollbar { width: 4px; }
-  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: rgba(90, 70, 218, 0.4);
     border-radius: 99px;

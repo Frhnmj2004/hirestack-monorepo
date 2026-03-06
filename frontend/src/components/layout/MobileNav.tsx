@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+
 import { ROUTES } from '@/lib/constants';
 
 // For brevity, a simple mobile overlay
 export function MobileNav() {
     const [isOpen, setIsOpen] = useState(false);
-    const pathname = usePathname();
+
 
     return (
         <div className="md:hidden flex items-center">

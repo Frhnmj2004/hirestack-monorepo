@@ -3,7 +3,7 @@
 import { Bell, Search, User } from 'lucide-react';
 import { useUiStore } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
-import { UI_CONSTANTS } from '@/lib/constants';
+
 
 export function Topbar() {
     const { isSidebarCollapsed } = useUiStore();

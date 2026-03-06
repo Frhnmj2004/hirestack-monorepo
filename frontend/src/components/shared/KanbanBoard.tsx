@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { cn } from '@/lib/utils';
+
 
 interface Column<T> {
     id: string;
@@ -15,7 +15,7 @@ interface KanbanBoardProps<T> {
     onDragEnd?: (itemId: string, sourceColId: string, destColId: string) => void;
 }
 
-export function KanbanBoard<T extends { id: string }>({ columns, renderCard, onDragEnd }: KanbanBoardProps<T>) {
+export function KanbanBoard<T extends { id: string }>({ columns, renderCard }: KanbanBoardProps<T>) {
 
     // NOTE: Simple visual representation for MVP. 
     // In a real app, integrate @hello-pangea/dnd or react-beautiful-dnd here.

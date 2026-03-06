@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Check, Minus } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 interface CandidateComparison {
     id: string;
