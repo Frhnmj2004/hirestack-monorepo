@@ -1,7 +1,7 @@
 import { PageHeader } from '@/components/layout/PageHeader';
 import { CandidateProfileCard } from '@/components/features/candidates/CandidateProfileCard';
 import { CandidateTimeline } from '@/components/features/candidates/CandidateTimeline';
-import { Button } from '@/components/ui/button';
+
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';

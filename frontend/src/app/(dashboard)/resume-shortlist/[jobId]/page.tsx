@@ -6,10 +6,10 @@ import { DataTable } from '@/components/shared/DataTable';
 import { ShortlistActions } from '@/components/features/resume-shortlist/ShortlistActions';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { useParams } from 'next/navigation';
+
 
 export default function JobShortlistPage() {
-    const params = useParams();
+
     const [searchTerm, setSearchTerm] = useState('');
 
     const mockShortlist = [

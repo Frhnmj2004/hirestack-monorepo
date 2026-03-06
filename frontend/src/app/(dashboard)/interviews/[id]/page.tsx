@@ -3,7 +3,7 @@
 import { PageHeader } from '@/components/layout/PageHeader';
 import { LiveSessionBanner } from '@/components/features/interviews/LiveSessionBanner';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, FileText, CheckCircle2, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Play, FileText } from 'lucide-react';
 import Link from 'next/link';
 import { ROUTES } from '@/lib/constants';
 import { useParams } from 'next/navigation';
