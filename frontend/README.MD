@@ -1,1 +1,1 @@
-#next js frontend.
+Frontend application (e.g. Next.js).

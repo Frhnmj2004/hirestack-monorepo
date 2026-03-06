@@ -71,3 +71,26 @@ HireStack helps teams move toward **smarter, faster, and more reliable hiring**.
 ## Team
 
 Built as part of a hackathon project to explore how AI can meaningfully assist human interviewers and improve the hiring process.
+
+---
+
+## Project (hirelens) – Architecture
+
+Monorepo for the **hirelens** AI interview intelligence platform.
+
+**Services (Phase 1):**
+
+- **API Gateway** (NestJS) – REST API for frontend, publishes events to NATS
+- **Interview Service** (NestJS) – Resume ingestion, ranking, AI interview orchestration
+- **LiveKit Agent** (Python) – Subscribes to NATS `interview.dynamic.start`, joins LiveKit rooms as AI interviewer
+- **NATS** – Event communication
+- **PostgreSQL** – Single shared database
+- **Redis** – Cache/sessions
+
+**How to start development**
+
+1. Start infrastructure: `cd backend/infra/docker && docker compose up -d`
+2. API Gateway: `cd backend/apps/api-gateway && npm install && npm run start:dev`
+3. Interview Service: `cd backend/apps/interview-service && npm install && npm run start:dev`
+4. LiveKit Agent: `cd backend/services/livekit-agent && pip install -r requirements.txt && python agent.py` (requires env vars; see `.env.example`)
+5. Copy `.env.example` to `.env` (or `backend/.env.local`) and fill in values.
