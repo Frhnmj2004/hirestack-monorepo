@@ -1,4 +1,6 @@
-import { Video, FileText, CheckCircle2 } from 'lucide-react';
+'use client';
+
+import { Video, FileText, CheckCircle2, UserPlus, Zap, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function RecentActivity() {
@@ -7,66 +9,156 @@ export function RecentActivity() {
             id: 1,
             type: 'interview_completed',
             title: 'AI Screening Completed',
-            desc: 'Sarah Jenkins completed the initial screening for Frontend Engineer.',
-            time: '2 hours ago',
+            desc: 'Sarah Jenkins — Frontend Engineer role',
+            time: '2h ago',
             icon: Video,
-            color: 'text-brand-lavender',
-            bgType: 'bg-brand-violet/20'
+            iconBg: 'rgba(90, 70, 218, 0.1)',
+            iconColor: '#5A46DA',
+            dotColor: '#5A46DA',
+            tag: 'Interview',
+            tagBg: 'rgba(90, 70, 218, 0.08)',
+            tagColor: '#5A46DA',
         },
         {
             id: 2,
             type: 'resume_parsed',
             title: 'Batch Resume Processing',
-            desc: 'Processed 54 new resumes for the Product Manager role.',
-            time: '4 hours ago',
+            desc: '54 new resumes — Product Manager role',
+            time: '4h ago',
             icon: FileText,
-            color: 'text-sky-400',
-            bgType: 'bg-sky-500/20'
+            iconBg: 'rgba(14, 165, 233, 0.1)',
+            iconColor: '#0ea5e9',
+            dotColor: '#0ea5e9',
+            tag: 'Resumes',
+            tagBg: 'rgba(14, 165, 233, 0.08)',
+            tagColor: '#0ea5e9',
         },
         {
             id: 3,
             type: 'shortlist_ready',
             title: 'Shortlist Generated',
-            desc: 'Top 10 candidates identified for Senior Backend Developer.',
-            time: '1 day ago',
+            desc: 'Top 10 candidates — Senior Backend Developer',
+            time: '1d ago',
             icon: CheckCircle2,
-            color: 'text-emerald-400',
-            bgType: 'bg-emerald-500/20'
-        }
+            iconBg: 'rgba(16, 185, 129, 0.1)',
+            iconColor: '#10b981',
+            dotColor: '#10b981',
+            tag: 'Shortlist',
+            tagBg: 'rgba(16, 185, 129, 0.08)',
+            tagColor: '#10b981',
+        },
+        {
+            id: 4,
+            type: 'candidate_added',
+            title: 'New Candidate Added',
+            desc: 'Alex Moore entered pipeline — UX Designer',
+            time: '2d ago',
+            icon: UserPlus,
+            iconBg: 'rgba(244, 63, 94, 0.1)',
+            iconColor: '#f43f5e',
+            dotColor: '#f43f5e',
+            tag: 'Candidate',
+            tagBg: 'rgba(244, 63, 94, 0.08)',
+            tagColor: '#f43f5e',
+        },
     ];
 
     return (
-        <div className="glass-card p-6 min-h-[400px]">
+        <div
+            className="p-6 rounded-2xl min-h-[420px] flex flex-col"
+            style={{
+                background: 'var(--glass-bg)',
+                backdropFilter: 'var(--glass-blur)',
+                WebkitBackdropFilter: 'var(--glass-blur)',
+                border: '1px solid var(--glass-border)',
+                boxShadow: 'var(--glass-shadow)',
+            }}
+        >
+            {/* Header */}
             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-semibold text-lg text-brand-light-textPrimary dark:text-white">Recent Activity</h3>
-                <button className="text-sm text-brand-lavender hover:text-brand-violet dark:hover:text-white transition-colors">View All</button>
+                <div>
+                    <h3 className="font-semibold text-base text-brand-light-textPrimary">Recent Activity</h3>
+                    <p className="text-xs text-brand-light-textSecondary mt-0.5">Platform events across all modules</p>
+                </div>
+                <button
+                    className="text-xs font-medium px-3 py-1.5 rounded-full transition-all duration-200"
+                    style={{
+                        color: '#5A46DA',
+                        background: 'rgba(90, 70, 218, 0.06)',
+                        border: '1px solid rgba(90, 70, 218, 0.12)',
+                    }}
+                >
+                    View All
+                </button>
             </div>
 
-            <div className="space-y-6">
+            {/* Activity Feed */}
+            <div className="flex-1 space-y-3">
                 {activities.map((item, idx) => {
                     const Icon = item.icon;
                     return (
-                        <div key={item.id} className="relative pl-4">
-                            {/* Timeline connector */}
-                            {idx !== activities.length - 1 && (
-                                <div className="absolute left-[1.35rem] top-10 bottom-[-1.5rem] w-[1px] bg-black/10 dark:bg-white/10" />
-                            )}
+                        <div
+                            key={item.id}
+                            className="group flex items-start gap-3.5 p-3.5 rounded-xl transition-all duration-200 cursor-pointer"
+                            style={{ background: 'transparent' }}
+                            onMouseEnter={e => {
+                                (e.currentTarget as HTMLDivElement).style.background = 'rgba(90, 70, 218, 0.04)';
+                            }}
+                            onMouseLeave={e => {
+                                (e.currentTarget as HTMLDivElement).style.background = 'transparent';
+                            }}
+                        >
+                            {/* Icon */}
+                            <div
+                                className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 transition-transform duration-200 group-hover:scale-105"
+                                style={{ background: item.iconBg }}
+                            >
+                                <Icon className="w-4 h-4" style={{ color: item.iconColor }} />
+                            </div>
 
-                            <div className="flex gap-4">
-                                <div className={cn("mt-1 w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-brand-gray dark:border-white/5 shadow-glow-sm", item.bgType)}>
-                                    <Icon className={cn("w-4 h-4", item.color)} />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <h4 className="text-sm font-semibold text-brand-light-textPrimary dark:text-white/90">{item.title}</h4>
-                                        <span className="text-xs text-brand-light-textSecondary dark:text-white/40">• {item.time}</span>
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <h4 className="text-sm font-semibold text-brand-light-textPrimary leading-tight truncate">
+                                            {item.title}
+                                        </h4>
+                                        <p className="text-xs text-brand-light-textSecondary mt-0.5 leading-relaxed">
+                                            {item.desc}
+                                        </p>
                                     </div>
-                                    <p className="text-sm text-brand-light-textSecondary dark:text-white/60 leading-relaxed">{item.desc}</p>
+                                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                                        <span
+                                            className="text-[10px] font-medium px-2 py-0.5 rounded-full whitespace-nowrap"
+                                            style={{
+                                                background: item.tagBg,
+                                                color: item.tagColor,
+                                                border: `1px solid ${item.tagColor}20`,
+                                            }}
+                                        >
+                                            {item.tag}
+                                        </span>
+                                        <div className="flex items-center gap-1 text-[10px] text-brand-light-textSecondary">
+                                            <Clock className="w-3 h-3" />
+                                            {item.time}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     );
                 })}
+            </div>
+
+            {/* Footer */}
+            <div
+                className="mt-4 pt-4 flex items-center gap-2"
+                style={{ borderTop: '1px solid rgba(230, 230, 240, 0.6)' }}
+            >
+                <Zap className="w-3.5 h-3.5 text-brand-violet" />
+                <p className="text-xs text-brand-light-textSecondary">
+                    <span className="font-semibold text-brand-light-textPrimary">24 events</span> in the last 7 days
+                </p>
             </div>
         </div>
     );
