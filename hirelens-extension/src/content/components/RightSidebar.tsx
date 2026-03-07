@@ -10,6 +10,7 @@ import {
   listInterviews,
   createInterview,
   parseDocument,
+  parseResume,
   startAssistSession,
   buildSessionFromInterview,
   openInterview,
@@ -206,6 +207,29 @@ function NoSessionHomePanel({ onSessionCreated }: { onSessionCreated: (s: Interv
 
   const [jdFile, setJdFile] = useState<File | null>(null);
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [resumeParsing, setResumeParsing] = useState(false);
+  const [parsedResumeText, setParsedResumeText] = useState<string | null>(null);
+
+  const handleResumeFile = async (file: File | null) => {
+    setResumeFile(file);
+    setParsedResumeText(null);
+    if (!file) return;
+    setResumeParsing(true);
+    try {
+      const { text, profile } = await parseResume(file);
+      setParsedResumeText(text);
+      setForm((f) => ({
+        ...f,
+        candidateName: profile.name || f.candidateName,
+        candidateEmail: profile.email || f.candidateEmail,
+        roleTitle: profile.role || f.roleTitle,
+      }));
+    } catch {
+      // parsing failed — user can fill manually
+    } finally {
+      setResumeParsing(false);
+    }
+  };
 
   useEffect(() => {
     listInterviews().then((list) => {
@@ -239,7 +263,7 @@ function NoSessionHomePanel({ onSessionCreated }: { onSessionCreated: (s: Interv
       setCreateStep("Parsing documents…");
       const [jdText, resumeText] = await Promise.all([
         parseDocument(jdFile),
-        parseDocument(resumeFile),
+        parsedResumeText ? Promise.resolve(parsedResumeText) : parseDocument(resumeFile),
       ]);
 
       setCreateStep("Generating AI interview plan…");
@@ -288,7 +312,7 @@ function NoSessionHomePanel({ onSessionCreated }: { onSessionCreated: (s: Interv
   if (showCreate) {
     return (
       <div className="hl-sb__panel-content">
-        <button type="button" className="hl-sb__back-btn" onClick={() => { setShowCreate(false); setCreateError(""); setJdFile(null); setResumeFile(null); }}>
+        <button type="button" className="hl-sb__back-btn" onClick={() => { setShowCreate(false); setCreateError(""); setJdFile(null); setResumeFile(null); setParsedResumeText(null); setForm({ candidateName: "", candidateEmail: "", roleTitle: "", department: "Engineering", level: "Mid" }); }}>
           <IconBack /> Back
         </button>
 
@@ -307,7 +331,7 @@ function NoSessionHomePanel({ onSessionCreated }: { onSessionCreated: (s: Interv
             label="Candidate Resume"
             hint="PDF, DOCX, or TXT · drag or click"
             file={resumeFile}
-            onFile={setResumeFile}
+            onFile={handleResumeFile}
             accept=".pdf,.docx,.doc,.txt"
           />
 
@@ -317,7 +341,7 @@ function NoSessionHomePanel({ onSessionCreated }: { onSessionCreated: (s: Interv
             <span>Name *</span>
             <input
               type="text"
-              placeholder="e.g. Aryan Kapoor"
+              placeholder={resumeParsing ? "Filling from resume…" : "e.g. Aryan Kapoor"}
               value={form.candidateName}
               onChange={(e) => setForm((f) => ({ ...f, candidateName: e.target.value }))}
             />
@@ -326,7 +350,7 @@ function NoSessionHomePanel({ onSessionCreated }: { onSessionCreated: (s: Interv
             <span>Email (optional)</span>
             <input
               type="email"
-              placeholder="candidate@email.com"
+              placeholder={resumeParsing ? "Filling from resume…" : "candidate@email.com"}
               value={form.candidateEmail}
               onChange={(e) => setForm((f) => ({ ...f, candidateEmail: e.target.value }))}
             />
@@ -336,7 +360,7 @@ function NoSessionHomePanel({ onSessionCreated }: { onSessionCreated: (s: Interv
               <span>Role *</span>
               <input
                 type="text"
-                placeholder="e.g. Senior Engineer"
+                placeholder={resumeParsing ? "Filling from resume…" : "e.g. Senior Engineer"}
                 value={form.roleTitle}
                 onChange={(e) => setForm((f) => ({ ...f, roleTitle: e.target.value }))}
               />
@@ -395,7 +419,12 @@ function NoSessionHomePanel({ onSessionCreated }: { onSessionCreated: (s: Interv
               <div className="hl-sb__ic-left">
                 <div className="hl-sb__ic-avatar">{item.candidateName[0]}</div>
                 <div className="hl-sb__ic-info">
-                  <p className="hl-sb__ic-name">{item.candidateName}</p>
+                  <p className="hl-sb__ic-name">
+                    {item.candidateName}
+                    {item.interviewId === "demo-int-1" && (
+                      <span className="hl-sb__demo-badge" title="Shown when backend is offline or has no interviews">Demo</span>
+                    )}
+                  </p>
                   <p className="hl-sb__ic-role">{item.roleTitle} · <span className="hl-sb__ic-level">{item.level}</span></p>
                   <div className="hl-sb__ic-skills">
                     {item.candidateSkills.slice(0, 3).map((s) => (

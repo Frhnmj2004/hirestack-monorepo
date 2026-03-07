@@ -123,7 +123,7 @@ export class AnalysisService {
     return (parsed.claims || []).map((c) => ({
       claimText: c.claimText || '',
       predicate: c.predicate,
-      object: c.object,
+      object: c.object != null ? String(c.object) : undefined,
       confidence: typeof c.confidence === 'number' ? c.confidence : undefined,
     }));
   }

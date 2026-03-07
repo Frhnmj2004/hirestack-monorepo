@@ -7,6 +7,9 @@ interface DynamicIslandProps {
   candidateName: string;
   questionIndex: number;
   totalQuestions: number;
+  answeredCount?: number;
+  /** Whether each question index (0-based) is answered — used for dot progress */
+  answeredByIndex?: boolean[];
   alertCount?: number;
   onNext: () => void;
   onPrev: () => void;
@@ -20,6 +23,8 @@ export function DynamicIsland({
   candidateName,
   questionIndex,
   totalQuestions,
+  answeredCount = 0,
+  answeredByIndex = [],
   alertCount = 0,
   onNext,
   onPrev,
@@ -74,20 +79,23 @@ export function DynamicIsland({
             <div className="hl-di__bottom">
               <div className="hl-di__progress-wrap">
                 <div className="hl-di__dots">
-                  {Array.from({ length: totalQuestions }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`hl-di__dot ${
-                        i === questionIndex - 1
-                          ? "hl-di__dot--active"
-                          : i < questionIndex - 1
-                          ? "hl-di__dot--done"
-                          : ""
-                      }`}
-                    />
-                  ))}
+                  {Array.from({ length: totalQuestions }).map((_, i) => {
+                    const isActive = i + 1 === questionIndex;
+                    const isAnswered = answeredByIndex[i] === true;
+                    return (
+                      <div
+                        key={i}
+                        className={`hl-di__dot ${
+                          isActive ? "hl-di__dot--active" : isAnswered ? "hl-di__dot--done" : ""
+                        }`}
+                        title={isActive ? "Now asking" : isAnswered ? "Answered" : "Pending"}
+                      />
+                    );
+                  })}
                 </div>
-                <span className="hl-di__counter">{questionIndex} / {totalQuestions}</span>
+                <span className="hl-di__counter">
+                  {answeredCount} answered · Q{questionIndex}/{totalQuestions}
+                </span>
               </div>
               <div className="hl-di__nav">
                 <button

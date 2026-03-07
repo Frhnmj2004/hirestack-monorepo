@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { DynamicIsland } from "./components/DynamicIsland";
+import { LiveStreamPanel } from "./components/LiveStreamPanel";
 import { RightSidebar } from "./components/RightSidebar";
 import {
   endAssistSession,
@@ -47,7 +48,9 @@ function ContentApp() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const sessionRef = useRef<InterviewSession | null>(null);
+  const currentIndexRef = useRef(0);
   const wsManager = useRef(new InterviewRealtimeManager());
+  currentIndexRef.current = currentIndex;
 
   function applySession(payload: SessionPayload) {
     sessionRef.current = payload.session;
@@ -143,6 +146,31 @@ function ContentApp() {
   // ── Real-time WebSocket connection ───────────────────────────────────────────
   function connectRealtime(sess: InterviewSession) {
     wsManager.current.connect(sess.sessionId, sess.candidate.id, {
+      onTranscript: (text, isFinal) => {
+        if (!text.trim()) return;
+        setSession((prev) => {
+          if (!prev) return prev;
+          const entry = {
+            id: `tx-${Date.now()}`,
+            speaker: "candidate" as const,
+            text,
+            timestamp: new Date().toISOString(),
+          };
+          const transcript = [...prev.transcript, entry];
+          if (isFinal) {
+            const idx = currentIndexRef.current;
+            const q = prev.questions[idx];
+            if (q && !q.answered) {
+              const questions = prev.questions.map((qu) =>
+                qu.id === q.id ? { ...qu, answered: true } : qu
+              );
+              return { ...prev, transcript, questions };
+            }
+            return { ...prev, transcript };
+          }
+          return { ...prev, transcript };
+        });
+      },
       onInsights: (data, questionId) => {
         const followUps: FollowUpItem[] = [
           ...data.followUpQuestions.map((f, i) => ({
@@ -160,8 +188,12 @@ function ContentApp() {
         ];
         setSession((prev) => {
           if (!prev) return prev;
+          const questions = prev.questions.map((q) =>
+            q.id === questionId && !q.answered ? { ...q, answered: true } : q
+          );
           return {
             ...prev,
+            questions,
             followUps: [...prev.followUps, ...followUps],
             insights: [...prev.insights, ...data.keyInsights],
             skillSignals: [...new Set([...prev.skillSignals, ...data.skillSignals])],
@@ -196,6 +228,19 @@ function ContentApp() {
     store.set({ [STORAGE_KEY]: { session: newSession, authorizedAt: Date.now() } });
   };
 
+  const pushInterviewerQuestion = (questionText: string) => {
+    setSession((prev) => {
+      if (!prev) return prev;
+      const entry = {
+        id: `tx-q-${Date.now()}`,
+        speaker: "interviewer" as const,
+        text: questionText,
+        timestamp: new Date().toISOString(),
+      };
+      return { ...prev, transcript: [...prev.transcript, entry] };
+    });
+  };
+
   const handleStartInterview = () => {
     if (!session) return;
     const updated: InterviewSession = { ...session, interviewStarted: true };
@@ -205,7 +250,10 @@ function ContentApp() {
     connectRealtime(updated);
     wsManager.current.startMic(updated.sessionId);
     const q = updated.questions[currentIndex];
-    if (q) wsManager.current.setActiveQuestion(updated.sessionId, q.id, q.text);
+    if (q) {
+      wsManager.current.setActiveQuestion(updated.sessionId, q.id, q.text);
+      pushInterviewerQuestion(q.text);
+    }
   };
 
   const handleSelectQuestion = (i: number) => {
@@ -213,7 +261,10 @@ function ContentApp() {
     const sess = sessionRef.current;
     if (sess?.interviewStarted) {
       const q = sess.questions[i];
-      if (q) wsManager.current.setActiveQuestion(sess.sessionId, q.id, q.text);
+      if (q) {
+        wsManager.current.setActiveQuestion(sess.sessionId, q.id, q.text);
+        pushInterviewerQuestion(q.text);
+      }
     }
   };
 
@@ -251,6 +302,8 @@ function ContentApp() {
   };
 
   const currentQuestion = session?.questions[currentIndex];
+  const answeredCount = session?.questions.filter((q) => q.answered).length ?? 0;
+  const totalQuestions = session?.questions.length ?? 0;
 
   return (
     <>
@@ -260,13 +313,18 @@ function ContentApp() {
           jobTitle={session.jobRole.title}
           candidateName={session.candidate.name}
           questionIndex={currentIndex + 1}
-          totalQuestions={session.questions.length}
+          totalQuestions={totalQuestions}
+          answeredCount={answeredCount}
+          answeredByIndex={session.questions.map((q) => q.answered)}
           alertCount={session.alerts.length}
           onNext={handleNextQuestion}
           onPrev={handlePrevQuestion}
           canNext={currentIndex < session.questions.length - 1}
           canPrev={currentIndex > 0}
         />
+      )}
+      {session?.interviewStarted && session.transcript.length > 0 && (
+        <LiveStreamPanel transcript={session.transcript} currentQuestion={currentQuestion?.text} />
       )}
       <RightSidebar
         session={session}

@@ -46,29 +46,53 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> 
  * Parse a PDF/DOCX/TXT file → extracted text.
  * .txt files are read locally; PDF/DOCX are sent to POST /files/parse.
  */
+export interface ParsedProfile {
+  name: string;
+  email: string;
+  role: string;
+}
+
+async function readTextFile(file: File): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve((e.target?.result as string) ?? "");
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsText(file);
+  });
+}
+
 export async function parseDocument(file: File): Promise<string> {
   if (file.name.toLowerCase().endsWith(".txt")) {
-    return new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve((e.target?.result as string) ?? "");
-      reader.onerror = () => reject(new Error("Failed to read file"));
-      reader.readAsText(file);
-    });
+    return readTextFile(file);
   }
-
   const formData = new FormData();
   formData.append("file", file);
-
   try {
-    const res = await fetch(`${API_BASE}/files/parse`, {
-      method: "POST",
-      body: formData,
-    });
+    const res = await fetch(`${API_BASE}/files/parse`, { method: "POST", body: formData });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = (await res.json()) as { text: string };
     return data.text;
   } catch (err) {
     console.error("[HireLens] parseDocument failed:", err);
+    throw new Error("Failed to parse document. Make sure the backend is running.");
+  }
+}
+
+/** Parse resume and extract candidate profile (name, email, role). */
+export async function parseResume(file: File): Promise<{ text: string; profile: ParsedProfile }> {
+  if (file.name.toLowerCase().endsWith(".txt")) {
+    const text = await readTextFile(file);
+    return { text, profile: { name: "", email: "", role: "" } };
+  }
+  const formData = new FormData();
+  formData.append("file", file);
+  try {
+    const res = await fetch(`${API_BASE}/files/parse?type=resume`, { method: "POST", body: formData });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = (await res.json()) as { text: string; profile?: ParsedProfile };
+    return { text: data.text, profile: data.profile ?? { name: "", email: "", role: "" } };
+  } catch (err) {
+    console.error("[HireLens] parseResume failed:", err);
     throw new Error("Failed to parse document. Make sure the backend is running.");
   }
 }
@@ -137,10 +161,32 @@ export async function createInterview(input: CreateInterviewInput): Promise<Back
   });
 }
 
-/** GET /interviews */
+/**
+ * Fallback when backend is down or returns no interviews — always show at least one
+ * demo interview so the sidebar flow can be demoed without the backend.
+ */
+export const DEMO_FALLBACK_INTERVIEWS: InterviewListItem[] = [
+  {
+    interviewId: "demo-int-1",
+    candidateId: "demo-cand-1",
+    candidateName: "Demo Candidate",
+    candidateSkills: ["Python", "FastAPI", "System Design"],
+    candidateSummary: "Sample interview for demo. Open this to try the full flow — questions, follow-ups, and flags.",
+    roleTitle: "Backend Engineer",
+    department: "Engineering",
+    level: "Mid",
+    questionCount: 5,
+    topicCount: 3,
+    createdAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+  },
+];
+
+/** GET /interviews — uses DEMO_FALLBACK_INTERVIEWS when backend fails or returns empty (for demo flow). */
 export async function listInterviews(): Promise<InterviewListItem[]> {
   const res = await apiFetch<{ interviews: InterviewListItem[] }>("/interviews");
-  return res?.interviews ?? MOCK_INTERVIEW_LIST;
+  const list = res?.interviews ?? [];
+  if (list.length === 0) return DEMO_FALLBACK_INTERVIEWS;
+  return list;
 }
 
 /** GET /interviews/:id */
@@ -422,6 +468,13 @@ export const MOCK_INTERVIEW_LIST: InterviewListItem[] = [
 
 function makeMockSession(item: InterviewListItem): InterviewSession {
   const mockQuestions: Record<string, QuestionItem[]> = {
+    "demo-int-1": [
+      { id: "dq1", text: "Walk me through how you've structured production FastAPI services.", competency: "Backend", type: "technical", order: 1, answered: false },
+      { id: "dq2", text: "Design a caching layer for a high-traffic REST API.", competency: "System Design", type: "technical", order: 2, answered: false },
+      { id: "dq3", text: "Tell me about a time you scaled a service under load.", competency: "Scalability", type: "behavioral", order: 3, answered: false },
+      { id: "dq4", text: "How do you approach testing for async/event-driven code?", competency: "Testing", type: "technical", order: 4, answered: false },
+      { id: "dq5", text: "A teammate pushes a breaking change right before release.", competency: "Collaboration", type: "situational", order: 5, answered: false },
+    ],
     "mock-int-aryan": [
       { id: "q1", text: "Walk me through how you'd architect a large-scale React app for 10K concurrent users.", competency: "Frontend Architecture", type: "technical", order: 1, answered: false },
       { id: "q2", text: "When would you choose Redux over Zustand or React Query?", competency: "State Management", type: "technical", order: 2, answered: false },
@@ -445,7 +498,7 @@ function makeMockSession(item: InterviewListItem): InterviewSession {
     ],
   };
 
-  const qs = mockQuestions[item.interviewId] ?? [];
+  const qs = mockQuestions[item.interviewId] ?? mockQuestions["demo-int-1"] ?? [];
   const topicMap: Record<string, string[]> = {};
   qs.forEach((q) => { (topicMap[q.competency] ??= []).push(q.id); });
   const topics = Object.entries(topicMap).map(([name, qIds], i) => ({

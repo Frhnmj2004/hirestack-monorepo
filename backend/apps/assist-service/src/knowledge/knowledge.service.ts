@@ -17,14 +17,15 @@ export class KnowledgeService {
   async storeFact(
     candidateId: string,
     predicate: string,
-    object: string,
+    object: string | number | boolean,
     options?: { startDate?: Date; endDate?: Date; confidence?: number; source?: string },
   ): Promise<string> {
+    const objectStr = object == null ? '' : String(object);
     const triple = await this.prisma.knowledgeTriple.create({
       data: {
         candidateId,
         predicate,
-        object,
+        object: objectStr,
         startDate: options?.startDate,
         endDate: options?.endDate,
         confidence: options?.confidence,
@@ -65,7 +66,7 @@ export class KnowledgeService {
           foundMatch = true;
           break;
         }
-        if (this.looksContradictory(predicate, existingObj, obj)) {
+        if (this.looksContradictoryWithTriple(t, existingObj, obj)) {
           contradiction = {
             match: 'contradiction',
             existingTriple: {
@@ -85,13 +86,20 @@ export class KnowledgeService {
     return results;
   }
 
-  private looksContradictory(predicate: string, existingObj: string, newObj: string): boolean {
+  private looksContradictoryWithTriple(
+    existingTriple: { object: string; startDate?: Date | null; endDate?: Date | null },
+    existingObj: string,
+    newObj: string,
+  ): boolean {
     const numA = this.parseNumber(existingObj);
     const numB = this.parseNumber(newObj);
     if (numA != null && numB != null && numA !== numB) return true;
-    const dateRangeA = this.parseDateRange(existingObj);
+    const dateRangeA =
+      existingTriple.startDate != null && existingTriple.endDate != null
+        ? ([existingTriple.startDate, existingTriple.endDate] as [Date, Date])
+        : this.parseDateRange(existingObj);
     const dateRangeB = this.parseDateRange(newObj);
-    if (dateRangeA && dateRangeB && this.dateRangesOverlap(dateRangeA, dateRangeB) === false) return true;
+    if (dateRangeA && dateRangeB && !this.dateRangesOverlap(dateRangeA, dateRangeB)) return true;
     return false;
   }
 
@@ -100,11 +108,40 @@ export class KnowledgeService {
     return m ? parseInt(m[0], 10) : null;
   }
 
-  private parseDateRange(_s: string): [Date, Date] | null {
+  /**
+   * Parse a date range from text (e.g. "2019-2023", "2019 to 2023", "2018", "Jan 2019 - Mar 2023").
+   * Returns [start, end] or null if no parseable range.
+   */
+  private parseDateRange(s: string): [Date, Date] | null {
+    if (!s || typeof s !== 'string') return null;
+    const trimmed = s.trim();
+    // Four-digit year or two ranges: 2019-2023, 2019–2023 (en dash), 2019 to 2023
+    const rangeMatch = trimmed.match(
+      /(\d{4})\s*[-–to]\s*(\d{4})/i,
+    );
+    if (rangeMatch) {
+      const y1 = parseInt(rangeMatch[1], 10);
+      const y2 = parseInt(rangeMatch[2], 10);
+      if (y1 <= y2) {
+        return [new Date(y1, 0, 1), new Date(y2, 11, 31)];
+      }
+      return [new Date(y2, 0, 1), new Date(y1, 11, 31)];
+    }
+    // Single year
+    const singleYear = trimmed.match(/\b(19|20)\d{2}\b/);
+    if (singleYear) {
+      const y = parseInt(singleYear[0], 10);
+      return [new Date(y, 0, 1), new Date(y, 11, 31)];
+    }
     return null;
   }
 
-  private dateRangesOverlap(_a: [Date, Date], _b: [Date, Date]): boolean {
-    return true;
+  /**
+   * True if the two ranges overlap (share any day). False = no overlap = potential contradiction.
+   */
+  private dateRangesOverlap(a: [Date, Date], b: [Date, Date]): boolean {
+    const [startA, endA] = a;
+    const [startB, endB] = b;
+    return startA.getTime() <= endB.getTime() && startB.getTime() <= endA.getTime();
   }
 }

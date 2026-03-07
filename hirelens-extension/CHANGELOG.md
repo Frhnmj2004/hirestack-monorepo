@@ -7,6 +7,12 @@ Format: `[version] YYYY-MM-DD — summary`
 
 ## [Unreleased] — 2026-03-07
 
+### Backend fix (interview creation 500)
+
+- **"Failed to create interview. Check the backend is running."** — The 500 on `POST /interviews` was caused by the assist-service storing knowledge triples with a numeric `object` (e.g. `api_requests_per_day: 2000000`) while the DB column expects a string. Fixed in backend: `KnowledgeService.storeFact()` now coerces `object` to string; `AnalysisService.extractClaims()` normalizes LLM output to string. Date-range contradiction detection in the knowledge graph (previously stubs) is now implemented so timeline contradictions (e.g. "worked at Acme in 2018" when resume says 2019–2023) are detected.
+
+---
+
 ### Critical fixes (session detection / sidebar not showing)
 
 #### Root cause identified and fixed
