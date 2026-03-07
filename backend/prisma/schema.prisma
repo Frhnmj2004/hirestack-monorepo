@@ -6,3 +6,149 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// Phase 1: Human interview templates
+model Interview {
+  id                      String            @id @default(uuid()) @db.Uuid
+  jobDescription          String?           @map("job_description")
+  cultureFit              String?           @map("culture_fit")
+  roleLevel               String?           @map("role_level")
+  competencyRequirements String?           @map("competency_requirements")
+  createdAt               DateTime          @default(now()) @map("created_at")
+  updatedAt               DateTime          @updatedAt @map("updated_at")
+  topics                  InterviewTopic[]
+  sessions                InterviewSession[]
+
+  @@map("interviews")
+}
+
+model InterviewTopic {
+  id          String             @id @default(uuid()) @db.Uuid
+  interviewId String             @map("interview_id") @db.Uuid
+  name        String
+  sortOrder   Int                @default(0) @map("sort_order")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  interview   Interview          @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  questions   InterviewQuestion[]
+
+  @@index([interviewId])
+  @@map("interview_topics")
+}
+
+model InterviewQuestion {
+  id           String        @id @default(uuid()) @db.Uuid
+  topicId      String        @map("topic_id") @db.Uuid
+  questionText String        @map("question_text")
+  mandatory    Boolean       @default(true)
+  sortOrder    Int           @default(0) @map("sort_order")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  topic        InterviewTopic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@index([topicId])
+  @@map("interview_questions")
+}
+
+// Assist service: interview sessions
+model InterviewSession {
+  id            String   @id @default(uuid()) @db.Uuid
+  interviewId   String?  @map("interview_id") @db.Uuid
+  candidateId   String   @map("candidate_id")
+  interviewerId String   @map("interviewer_id")
+  meetingLink   String?  @map("meeting_link")
+  status        String   @default("active")
+  startedAt     DateTime @default(now()) @map("started_at")
+  endedAt       DateTime? @map("ended_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  interview     Interview? @relation(fields: [interviewId], references: [id], onDelete: SetNull)
+  turns         InterviewTurn[]
+  claims        Claim[]
+  alerts        Alert[]
+
+  @@index([candidateId])
+  @@index([status])
+  @@map("interview_sessions")
+}
+
+model InterviewTurn {
+  id               String   @id @default(uuid()) @db.Uuid
+  sessionId        String   @map("session_id") @db.Uuid
+  activeQuestion   String?  @map("active_question")
+  candidateAnswer  String?  @map("candidate_answer")
+  transcriptSnippet String? @map("transcript_snippet")
+  turnIndex        Int      @default(0) @map("turn_index")
+  createdAt        DateTime @default(now()) @map("created_at")
+  session          InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  claims           Claim[]
+  alerts           Alert[]
+
+  @@index([sessionId])
+  @@map("interview_turns")
+}
+
+model Claim {
+  id         String   @id @default(uuid()) @db.Uuid
+  turnId     String   @map("turn_id") @db.Uuid
+  sessionId  String   @map("session_id") @db.Uuid
+  candidateId String  @map("candidate_id")
+  claimText  String   @map("claim_text")
+  predicate  String?
+  object     String?
+  confidence Decimal? @db.Decimal(5, 4)
+  createdAt  DateTime @default(now()) @map("created_at")
+  turn       InterviewTurn  @relation(fields: [turnId], references: [id], onDelete: Cascade)
+  session    InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  alerts     Alert[]
+
+  @@index([sessionId])
+  @@index([candidateId])
+  @@map("claims")
+}
+
+model Alert {
+  id                String   @id @default(uuid()) @db.Uuid
+  sessionId         String   @map("session_id") @db.Uuid
+  turnId            String?  @map("turn_id") @db.Uuid
+  claimId           String?  @map("claim_id") @db.Uuid
+  type              String
+  transcriptSnippet String?  @map("transcript_snippet")
+  resumeEvidence    String?  @map("resume_evidence")
+  explanation       String?
+  suggestedQuestion String?  @map("suggested_question")
+  confidence        Decimal? @db.Decimal(5, 4)
+  createdAt         DateTime @default(now()) @map("created_at")
+  session           InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  turn              InterviewTurn?    @relation(fields: [turnId], references: [id], onDelete: SetNull)
+  claim             Claim?            @relation(fields: [claimId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@map("alerts")
+}
+
+model KnowledgeTriple {
+  id         String   @id @default(uuid()) @db.Uuid
+  candidateId String  @map("candidate_id")
+  predicate  String
+  object     String
+  startDate  DateTime? @map("start_date") @db.Date
+  endDate    DateTime? @map("end_date") @db.Date
+  confidence Decimal? @db.Decimal(5, 4)
+  source     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([candidateId])
+  @@index([candidateId, predicate])
+  @@map("knowledge_triples")
+}
+
+model ResumeChunk {
+  id         String   @id @default(uuid()) @db.Uuid
+  candidateId String  @map("candidate_id")
+  textChunk  String   @map("text_chunk")
+  embedding  Unsupported("vector")?
+  metadata   Json?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([candidateId])
+  @@map("resume_chunks")
+}

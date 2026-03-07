@@ -15,7 +15,8 @@
     "outDir": "./dist",
     "baseUrl": "./",
     "paths": {
-      "@hirelens/shared-types": ["../../libs/shared-types/src"]
+      "@hirelens/shared-types": ["../../libs/shared-types/src"],
+      "@hirelens/shared-prompts": ["../../libs/shared-prompts/src"]
     },
     "incremental": true,
     "skipLibCheck": true,
