@@ -80,17 +80,20 @@ Monorepo for the **hirelens** AI interview intelligence platform.
 
 **Services (Phase 1):**
 
-- **API Gateway** (NestJS) – REST API for frontend, publishes events to NATS
+- **API Gateway** (NestJS) – REST API for frontend, proxies assist session lifecycle to NATS
 - **Interview Service** (NestJS) – Resume ingestion, ranking, AI interview orchestration
+- **Assist Service** (NestJS) – Human interview copilot: WebSocket for Chrome extension, Deepgram STT, OpenAI analysis, pgvector RAG, knowledge-graph contradiction detection
 - **LiveKit Agent** (Python) – Subscribes to NATS `interview.dynamic.start`, joins LiveKit rooms as AI interviewer
 - **NATS** – Event communication
-- **PostgreSQL** – Single shared database
-- **Redis** – Cache/sessions
+- **PostgreSQL** – Single shared database (pgvector for embeddings)
+- **Redis** – Cache/sessions, embedding cache
 
 **How to start development**
 
 1. Start infrastructure: `cd backend/infra/docker && docker compose up -d`
-2. API Gateway: `cd backend/apps/api-gateway && npm install && npm run start:dev`
-3. Interview Service: `cd backend/apps/interview-service && npm install && npm run start:dev`
-4. LiveKit Agent: `cd backend/services/livekit-agent && pip install -r requirements.txt && python agent.py` (requires env vars; see `.env.example`)
-5. Copy `.env.example` to `.env` (or `backend/.env.local`) and fill in values.
+2. Run migrations: apply `backend/migrations/002_enable_pgvector.sql` and `003_assist_schema.sql` to PostgreSQL (in order).
+3. API Gateway: `cd backend/apps/api-gateway && npm install && npm run start:dev`
+4. Interview Service: `cd backend/apps/interview-service && npm install && npm run start:dev`
+5. Assist Service: `cd backend/apps/assist-service && npm install && npm run start:dev` (requires `DEEPGRAM_API_KEY`, `OPENAI_API_KEY`; see `.env.example`)
+6. LiveKit Agent: `cd backend/services/livekit-agent && pip install -r requirements.txt && python agent.py` (requires env vars; see `.env.example`)
+7. Copy `.env.example` to `.env` (or `backend/.env.local`) and fill in values.
