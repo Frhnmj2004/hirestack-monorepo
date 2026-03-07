@@ -16,6 +16,16 @@ export default function JobRoleDetailPage() {
 
     const [searchTerm, setSearchTerm] = useState('');
 
+    const MOCK_JOBS: Record<string, { title: string; department: string; location: string; openedAt: string }> = {
+        '1': { title: 'Senior Frontend Engineer', department: 'Engineering', location: 'Remote', openedAt: 'Oct 12, 2025' },
+        '2': { title: 'UX Designer', department: 'Design', location: 'New York, NY', openedAt: 'Oct 15, 2025' },
+        '3': { title: 'Backend Developer', department: 'Engineering', location: 'London, UK', openedAt: 'Oct 18, 2025' },
+        '4': { title: 'Product Manager', department: 'Product', location: 'Remote', openedAt: 'Oct 20, 2025' },
+        '5': { title: 'Data Scientist', department: 'Data', location: 'San Francisco, CA', openedAt: 'Nov 02, 2025' }
+    };
+
+    const job = MOCK_JOBS[jobId] || { title: `Job Role #${jobId}`, department: 'Department', location: 'Location', openedAt: 'Recent' };
+
     const mockCandidates = [
         { id: '1', name: 'Alex Harper', matchScore: 92, status: 'AI Shortlisted', appliedDate: '2 days ago' },
         { id: '2', name: 'Jordan Lee', matchScore: 88, status: 'AI Screened', appliedDate: '3 days ago' },
@@ -25,32 +35,32 @@ export default function JobRoleDetailPage() {
     ];
 
     return (
-        <div className="flex flex-col gap-8 w-full">
+        <div className="flex flex-col gap-8 w-full animate-fade-in">
             <PageHeader
-                title="Senior Frontend Engineer"
-                description="Engineering • Remote • Opened Oct 12, 2025"
+                title={job.title}
+                description={`${job.department} • ${job.location} • Opened ${job.openedAt}`}
             >
                 <Link href={`${ROUTES.JOB_ROLES}/${jobId}/edit`}>
-                    <Button variant="outline" className="text-white border-white/20 hover:bg-white/10">
-                        <Pencil className="w-4 h-4 mr-2" />
+                    <Button variant="outline" className="text-brand-light-textPrimary border-[#E6E6F0] hover:bg-black/5 hover:text-brand-violet transition-colors rounded-xl font-medium h-10">
+                        <Pencil className="w-4 h-4 mr-2 text-brand-light-textSecondary" />
                         Edit Details
                     </Button>
                 </Link>
                 <Link href={`${ROUTES.RESUMES}/${jobId}`}>
-                    <Button className="bg-brand-violet hover:bg-brand-violet/80 text-white shadow-glow-sm border-none">
+                    <Button className="btn-primary h-10 rounded-xl px-5 text-sm">
                         <Upload className="w-4 h-4 mr-2" />
                         Upload Resumes
                     </Button>
                 </Link>
             </PageHeader>
 
-            <div className="glass-card flex flex-col pt-6 rounded-b-[18px]">
+            <div className="glass-card flex flex-col pt-6">
                 <div className="px-6 mb-6 flex justify-between items-end">
                     <div>
-                        <h3 className="text-lg font-bold text-white mb-1">Candidate Pipeline</h3>
-                        <p className="text-sm text-white/50">Manage applicants and view AI match scores for this specific role.</p>
+                        <h3 className="text-lg font-bold text-brand-light-textPrimary mb-1">Candidate Pipeline</h3>
+                        <p className="text-sm text-brand-light-textSecondary">Manage applicants and view AI match scores for this specific role.</p>
                     </div>
-                    <Button variant="ghost" className="text-brand-lavender hover:text-white hover:bg-brand-violet/20 h-9">
+                    <Button variant="ghost" className="text-brand-violet hover:text-brand-violet hover:bg-brand-violet/10 h-9 transition-colors rounded-xl text-sm font-semibold px-4">
                         <UserPlus className="w-4 h-4 mr-2" />
                         Add Candidate
                     </Button>
@@ -64,21 +74,21 @@ export default function JobRoleDetailPage() {
                     columns={[
                         {
                             header: 'Candidate Name',
-                            cell: (row) => <div className="font-semibold text-white group-hover:text-brand-lavender transition-colors cursor-pointer">{row.name}</div>
+                            cell: (row) => <div className="font-semibold text-brand-light-textPrimary hover:text-brand-violet transition-colors cursor-pointer">{row.name}</div>
                         },
                         {
                             header: 'AI Match Score',
                             cell: (row) => (
                                 <div className="flex items-center gap-2">
                                     <span className={cn(
-                                        "font-bold",
-                                        row.matchScore >= 90 ? "text-emerald-400" : row.matchScore >= 80 ? "text-amber-400" : "text-white/60"
+                                        "font-bold text-sm",
+                                        row.matchScore >= 90 ? "text-emerald-500" : row.matchScore >= 80 ? "text-amber-500" : "text-brand-light-textSecondary"
                                     )}>
                                         {row.matchScore}%
                                     </span>
-                                    <div className="w-24 h-2 bg-white/10 rounded-full overflow-hidden">
+                                    <div className="w-24 h-2 bg-black/5 rounded-full overflow-hidden">
                                         <div
-                                            className={cn("h-full", row.matchScore >= 90 ? "bg-emerald-400" : row.matchScore >= 80 ? "bg-amber-400" : "bg-white/40")}
+                                            className={cn("h-full", row.matchScore >= 90 ? "bg-emerald-500" : row.matchScore >= 80 ? "bg-amber-500" : "bg-[#E6E6F0]")}
                                             style={{ width: `${row.matchScore}%` }}
                                         />
                                     </div>
@@ -89,11 +99,11 @@ export default function JobRoleDetailPage() {
                             header: 'Status',
                             cell: (row) => (
                                 <span className={cn(
-                                    "px-2.5 py-1 text-xs font-semibold rounded-full border",
-                                    row.status === 'AI Shortlisted' ? "badge-shortlisted" :
-                                        row.status === 'AI Screened' ? "badge-interviewed" :
-                                            row.status === 'Pending Review' ? "bg-white/10 text-white/70 border-white/20" :
-                                                "badge-rejected"
+                                    "px-2.5 py-1 text-[10px] uppercase tracking-widest font-bold rounded-full border",
+                                    row.status === 'AI Shortlisted' ? "bg-brand-violet/10 text-brand-violet border-brand-violet/20" :
+                                        row.status === 'AI Screened' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" :
+                                            row.status === 'Pending Review' ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
+                                                "bg-rose-500/10 text-rose-600 border-rose-500/20"
                                 )}>
                                     {row.status}
                                 </span>
@@ -102,7 +112,7 @@ export default function JobRoleDetailPage() {
                         {
                             header: 'Applied',
                             accessorKey: 'appliedDate',
-                            className: "text-white/50 text-right"
+                            className: "text-brand-light-textSecondary text-right text-xs font-medium"
                         },
                     ]}
                 />
