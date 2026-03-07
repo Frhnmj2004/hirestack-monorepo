@@ -90,13 +90,16 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    /* Soft lavender-blue ambient gradient */
+    /* Rich ambient light gradient — top lavender, bottom-right violet-rose, bottom-left mint */
+    background-color: #F0EEFF;
     background-image:
-      radial-gradient(ellipse 90% 55% at 50% -10%, rgba(155, 140, 255, 0.12), transparent),
-      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(90, 70, 218, 0.08), transparent),
-      radial-gradient(ellipse 50% 35% at 10% 80%, rgba(200, 185, 255, 0.1), transparent);
+      radial-gradient(ellipse 100% 60% at 50% -5%, rgba(155, 140, 255, 0.20), transparent),
+      radial-gradient(ellipse 70% 50% at 95% 95%, rgba(90, 70, 218, 0.12), transparent),
+      radial-gradient(ellipse 60% 45% at 0% 90%, rgba(200, 185, 255, 0.14), transparent),
+      radial-gradient(ellipse 80% 70% at 50% 50%, rgba(247, 248, 252, 0.60), transparent);
     background-attachment: fixed;
   }
+
 
   h1,
   h2,

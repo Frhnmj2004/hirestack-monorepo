@@ -44,66 +44,77 @@ export function Sidebar() {
     return (
         <aside
             className={cn(
-                "fixed left-0 top-0 z-40 h-screen transition-all duration-300 flex flex-col",
-                isSidebarCollapsed ? "w-[76px]" : "w-[256px]"
+                'fixed left-3 top-3 bottom-3 z-40 flex flex-col',
+                'transition-all duration-300 ease-in-out',
+                isSidebarCollapsed ? 'w-[76px]' : 'w-[256px]'
             )}
             style={{
-                background: 'var(--sidebar-bg)',
+                /* Glassmorphism */
+                background: 'rgba(255, 255, 255, 0.72)',
                 backdropFilter: 'blur(24px)',
                 WebkitBackdropFilter: 'blur(24px)',
-                borderRight: '1px solid var(--sidebar-border)',
-                boxShadow: '4px 0 24px rgba(90, 70, 218, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.55)',
+                boxShadow:
+                    '0 8px 32px rgba(90, 70, 218, 0.10), 0 2px 8px rgba(0,0,0,0.04)',
+                borderRadius: '20px',
             }}
         >
-            {/* Logo Area */}
-            <div className={cn(
-                "flex h-16 items-center border-b transition-all duration-300",
-                isSidebarCollapsed ? "px-0 justify-center" : "px-5 justify-between"
-            )}
-                style={{ borderColor: 'var(--sidebar-border)' }}
+            {/* ── Logo ─────────────────────────────────── */}
+            <div
+                className={cn(
+                    'flex h-[60px] items-center shrink-0 px-4',
+                    isSidebarCollapsed ? 'justify-center' : 'justify-between'
+                )}
+                style={{
+                    borderBottom: '1px solid rgba(230, 230, 240, 0.6)',
+                }}
             >
-                {!isSidebarCollapsed ? (
-                    <Link href={ROUTES.DASHBOARD} className="flex items-center gap-2.5 group">
-                        {/* Logo mark */}
-                        <div className="relative w-8 h-8 flex-shrink-0">
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                                style={{
-                                    background: 'linear-gradient(135deg, #5A46DA 0%, #9B8CFF 100%)',
-                                    boxShadow: '0 4px 12px rgba(90, 70, 218, 0.4)',
-                                }}
-                            >
-                                <Sparkles className="w-4 h-4 text-white" />
-                            </div>
-                        </div>
-                        <div className="flex flex-col leading-none">
-                            <span className="font-bold text-[15px] tracking-tight text-brand-light-textPrimary">
-                                HireLens
-                            </span>
-                            <span className="text-[10px] text-brand-light-textSecondary font-medium tracking-wide uppercase">
-                                AI Platform
-                            </span>
-                        </div>
-                    </Link>
-                ) : (
+                {isSidebarCollapsed ? (
                     <Link href={ROUTES.DASHBOARD}>
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                        <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center"
                             style={{
-                                background: 'linear-gradient(135deg, #5A46DA 0%, #9B8CFF 100%)',
-                                boxShadow: '0 4px 12px rgba(90, 70, 218, 0.4)',
+                                background:
+                                    'linear-gradient(135deg, #5A46DA 0%, #9B8CFF 100%)',
+                                boxShadow: '0 4px 12px rgba(90,70,218,0.40)',
                             }}
                         >
                             <Sparkles className="w-4 h-4 text-white" />
                         </div>
                     </Link>
+                ) : (
+                    <Link
+                        href={ROUTES.DASHBOARD}
+                        className="flex items-center gap-2.5"
+                    >
+                        <div
+                            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                            style={{
+                                background:
+                                    'linear-gradient(135deg, #5A46DA 0%, #9B8CFF 100%)',
+                                boxShadow: '0 4px 12px rgba(90,70,218,0.40)',
+                            }}
+                        >
+                            <Sparkles className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="leading-none">
+                            <p className="font-bold text-[15px] tracking-tight text-brand-light-textPrimary">
+                                HireLens
+                            </p>
+                            <p className="text-[10px] font-semibold uppercase tracking-widest text-brand-violet/70 mt-0.5">
+                                AI Platform
+                            </p>
+                        </div>
+                    </Link>
                 )}
             </div>
 
-            {/* Navigation */}
-            <div className="flex-1 overflow-y-auto scrollbar-thin py-5 px-3 space-y-6">
+            {/* ── Navigation ───────────────────────────── */}
+            <div className="flex-1 overflow-y-auto scrollbar-thin py-4 px-2.5 space-y-4">
                 {NAV_GROUPS.map((group) => (
                     <div key={group.label}>
                         {!isSidebarCollapsed && (
-                            <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-brand-light-textSecondary/60">
+                            <p className="px-3 mb-1.5 text-[10px] font-bold uppercase tracking-widest text-brand-violet/50">
                                 {group.label}
                             </p>
                         )}
@@ -115,30 +126,37 @@ export function Sidebar() {
                                     <Link
                                         key={item.href}
                                         href={item.href}
-                                        className={cn(
-                                            "nav-link group relative",
-                                            isActive && "active",
-                                            isSidebarCollapsed && "justify-center px-0 py-3"
-                                        )}
                                         title={isSidebarCollapsed ? item.name : undefined}
-                                    >
-                                        <Icon className={cn(
-                                            "w-[18px] h-[18px] flex-shrink-0 transition-all duration-200",
+                                        className={cn(
+                                            'flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 cursor-pointer select-none',
+                                            isSidebarCollapsed
+                                                ? 'justify-center p-2.5'
+                                                : 'px-3 py-2.5',
                                             isActive
-                                                ? "text-brand-violet"
-                                                : "text-brand-light-textSecondary group-hover:text-brand-light-textPrimary"
-                                        )} />
-                                        {!isSidebarCollapsed && (
-                                            <span className={cn(
-                                                "text-sm transition-all duration-200",
-                                                isActive ? "text-brand-violet font-semibold" : ""
-                                            )}>
-                                                {item.name}
-                                            </span>
+                                                ? 'text-white'
+                                                : 'text-brand-light-textSecondary hover:text-brand-light-textPrimary hover:bg-brand-violet/6'
                                         )}
-                                        {/* Active indicator dot */}
-                                        {isActive && isSidebarCollapsed && (
-                                            <span className="absolute right-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-brand-violet" />
+                                        style={
+                                            isActive
+                                                ? {
+                                                    background:
+                                                        'linear-gradient(135deg, #5A46DA 0%, #7B6CFF 100%)',
+                                                    boxShadow:
+                                                        '0 4px 14px rgba(90,70,218,0.35)',
+                                                }
+                                                : {}
+                                        }
+                                    >
+                                        <Icon
+                                            className={cn(
+                                                'w-[18px] h-[18px] shrink-0',
+                                                isActive
+                                                    ? 'text-white'
+                                                    : 'text-brand-light-textSecondary'
+                                            )}
+                                        />
+                                        {!isSidebarCollapsed && (
+                                            <span>{item.name}</span>
                                         )}
                                     </Link>
                                 );
@@ -148,48 +166,64 @@ export function Sidebar() {
                 ))}
             </div>
 
-            {/* Bottom Actions */}
+            {/* ── Bottom ───────────────────────────────── */}
             <div
-                className="p-3 space-y-0.5"
-                style={{ borderTop: '1px solid var(--sidebar-border)' }}
+                className="px-2.5 pb-3 pt-2 space-y-0.5"
+                style={{ borderTop: '1px solid rgba(230, 230, 240, 0.6)' }}
             >
                 <Link
                     href={ROUTES.SETTINGS}
+                    title={isSidebarCollapsed ? 'Settings' : undefined}
                     className={cn(
-                        "nav-link group",
-                        pathname.startsWith(ROUTES.SETTINGS) && "active",
-                        isSidebarCollapsed && "justify-center px-0 py-3"
-                    )}
-                    title={isSidebarCollapsed ? "Settings" : undefined}
-                >
-                    <Settings className={cn(
-                        "w-[18px] h-[18px] flex-shrink-0",
+                        'flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200',
+                        isSidebarCollapsed
+                            ? 'justify-center p-2.5'
+                            : 'px-3 py-2.5',
                         pathname.startsWith(ROUTES.SETTINGS)
-                            ? "text-brand-violet"
-                            : "text-brand-light-textSecondary group-hover:text-brand-light-textPrimary"
-                    )} />
+                            ? 'text-white'
+                            : 'text-brand-light-textSecondary hover:text-brand-light-textPrimary hover:bg-brand-violet/6'
+                    )}
+                    style={
+                        pathname.startsWith(ROUTES.SETTINGS)
+                            ? {
+                                background:
+                                    'linear-gradient(135deg, #5A46DA 0%, #7B6CFF 100%)',
+                                boxShadow: '0 4px 14px rgba(90,70,218,0.35)',
+                            }
+                            : {}
+                    }
+                >
+                    <Settings
+                        className={cn(
+                            'w-[18px] h-[18px] shrink-0',
+                            pathname.startsWith(ROUTES.SETTINGS)
+                                ? 'text-white'
+                                : 'text-brand-light-textSecondary'
+                        )}
+                    />
                     {!isSidebarCollapsed && <span>Settings</span>}
                 </Link>
 
+                {/* Collapse toggle */}
                 <button
                     onClick={toggleSidebar}
+                    title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                     className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium",
-                        "text-brand-light-textSecondary hover:text-brand-light-textPrimary",
-                        "hover:bg-brand-violet/6 transition-all duration-200 cursor-pointer",
-                        isSidebarCollapsed && "justify-center px-0"
+                        'w-full flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200',
+                        'text-brand-light-textSecondary hover:text-brand-violet hover:bg-brand-violet/6',
+                        isSidebarCollapsed
+                            ? 'justify-center p-2.5'
+                            : 'px-3 py-2.5'
                     )}
-                    title={isSidebarCollapsed ? "Expand" : "Collapse"}
                 >
-                    {isSidebarCollapsed
-                        ? <ChevronRight className="w-4 h-4" />
-                        : (
-                            <>
-                                <ChevronLeft className="w-4 h-4" />
-                                <span>Collapse</span>
-                            </>
-                        )
-                    }
+                    {isSidebarCollapsed ? (
+                        <ChevronRight className="w-4 h-4" />
+                    ) : (
+                        <>
+                            <ChevronLeft className="w-4 h-4" />
+                            <span>Collapse</span>
+                        </>
+                    )}
                 </button>
             </div>
         </aside>
