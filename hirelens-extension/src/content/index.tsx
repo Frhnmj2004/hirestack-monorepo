@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom/client";
 import { DynamicIsland } from "./components/DynamicIsland";
+import { FlagToast } from "./components/FlagToast";
 import { LiveStreamPanel } from "./components/LiveStreamPanel";
 import { RightSidebar } from "./components/RightSidebar";
 import {
@@ -10,6 +11,7 @@ import {
 import type { InterviewSession, SessionPayload, FollowUpItem } from "../shared/types";
 import contentCss from "./content.css?raw";
 import islandCss from "./components/DynamicIsland.css?raw";
+import flagToastCss from "./components/FlagToast.css?raw";
 import liveStreamCss from "./components/LiveStreamPanel.css?raw";
 import sidebarCss from "./components/RightSidebar.css?raw";
 
@@ -50,6 +52,7 @@ function ContentApp() {
   const [durationSeconds, setDurationSeconds] = useState(0);
   const sessionRef = useRef<InterviewSession | null>(null);
   const currentIndexRef = useRef(0);
+  const [flagToast, setFlagToast] = useState<{ count: number } | null>(null);
   const wsManager = useRef(new InterviewRealtimeManager());
   currentIndexRef.current = currentIndex;
 
@@ -139,6 +142,21 @@ function ContentApp() {
     return () => clearInterval(id);
   }, [session?.sessionId, session?.interviewStarted]);
 
+  // ── 6b. Persist progress (transcript, insights, alerts, answered, scores) ─────
+  useEffect(() => {
+    if (!session?.sessionId) return;
+    const payload: SessionPayload = {
+      session: {
+        ...session,
+        currentQuestionIndex: currentIndex,
+        durationSeconds,
+      },
+      authorizedAt: Date.now(),
+    };
+    const t = setTimeout(() => store.set({ [STORAGE_KEY]: payload }), 300);
+    return () => clearTimeout(t);
+  }, [session, currentIndex, durationSeconds]);
+
   // ── 7. Cleanup WS on unmount ─────────────────────────────────────────────────
   useEffect(() => {
     return () => { wsManager.current.disconnect(); };
@@ -206,6 +224,7 @@ function ContentApp() {
           if (!prev) return prev;
           const existingIds = new Set(prev.alerts.map((a) => a.id));
           const fresh = alerts.filter((a) => !existingIds.has(a.id));
+          if (fresh.length > 0) setFlagToast({ count: fresh.length });
           return { ...prev, alerts: [...prev.alerts, ...fresh] };
         });
       },
@@ -213,6 +232,29 @@ function ContentApp() {
         setSession((prev) => {
           if (!prev) return prev;
           return { ...prev, evidenceCards: [...prev.evidenceCards, ...cards] };
+        });
+      },
+      onScores: (payload) => {
+        setSession((prev) => {
+          if (!prev || !payload.scores?.length) return prev;
+          const byLabel = new Map(prev.scores.map((s) => [s.label, { ...s }]));
+          for (const { label, score, outOf } of payload.scores) {
+            const existing = byLabel.get(label);
+            byLabel.set(label, {
+              label,
+              score,
+              outOf: outOf ?? existing?.outOf ?? 10,
+            });
+          }
+          const scores = Array.from(byLabel.values());
+          let questions = prev.questions;
+          if (payload.questionId && payload.scores.length > 0) {
+            const avg = payload.scores.reduce((a, s) => a + s.score, 0) / payload.scores.length;
+            questions = prev.questions.map((q) =>
+              q.id === payload.questionId ? { ...q, score: avg, answered: true } : q
+            );
+          }
+          return { ...prev, scores, questions };
         });
       },
       onError: (msg) => console.error("[HireLens WS]", msg),
@@ -244,17 +286,17 @@ function ContentApp() {
 
   const handleStartInterview = () => {
     if (!session) return;
-    const updated: InterviewSession = { ...session, interviewStarted: true };
+    const q = session.questions[currentIndex];
+    const firstTranscript = q
+      ? [...session.transcript, { id: `tx-q-${Date.now()}`, speaker: "interviewer" as const, text: q.text, timestamp: new Date().toISOString() }]
+      : session.transcript;
+    const updated: InterviewSession = { ...session, interviewStarted: true, transcript: firstTranscript };
     sessionRef.current = updated;
     setSession(updated);
     store.set({ [STORAGE_KEY]: { session: updated, authorizedAt: Date.now() } });
     connectRealtime(updated);
     wsManager.current.startMic(updated.sessionId);
-    const q = updated.questions[currentIndex];
-    if (q) {
-      wsManager.current.setActiveQuestion(updated.sessionId, q.id, q.text);
-      pushInterviewerQuestion(q.text);
-    }
+    if (q) wsManager.current.setActiveQuestion(updated.sessionId, q.id, q.text);
   };
 
   const handleSelectQuestion = (i: number) => {
@@ -325,7 +367,18 @@ function ContentApp() {
         />
       )}
       {session?.interviewStarted && (
-        <LiveStreamPanel transcript={session.transcript} currentQuestion={currentQuestion?.text} />
+        <LiveStreamPanel
+          transcript={session.transcript}
+          currentQuestion={currentQuestion?.text}
+          followUps={session.followUps}
+          onAskFollowUp={(questionText) => pushInterviewerQuestion(questionText)}
+        />
+      )}
+      {flagToast && (
+        <FlagToast
+          count={flagToast.count}
+          onDismiss={() => setFlagToast(null)}
+        />
       )}
       <RightSidebar
         session={session}
@@ -348,7 +401,7 @@ function mount() {
   const shadow = host.attachShadow({ mode: "open" });
 
   const style = document.createElement("style");
-  style.textContent = [contentCss, islandCss, liveStreamCss, sidebarCss].join("\n");
+  style.textContent = [contentCss, islandCss, flagToastCss, liveStreamCss, sidebarCss].join("\n");
   shadow.appendChild(style);
 
   const inner = document.createElement("div");

@@ -304,6 +304,12 @@ export async function openInterview(item: InterviewListItem): Promise<InterviewS
 
 // ── Real-time WebSocket manager ───────────────────────────────────────────────
 
+/** Backend can send competency scores per turn; extension merges into session.scores */
+export interface CompetencyScorePayload {
+  questionId?: string;
+  scores: Array<{ label: string; score: number; outOf?: number }>;
+}
+
 export interface RealtimeCallbacks {
   onTranscript?: (text: string, isFinal: boolean) => void;
   onInsights?: (data: {
@@ -314,6 +320,7 @@ export interface RealtimeCallbacks {
   }, questionId: string) => void;
   onAlerts?: (alerts: AlertItem[]) => void;
   onEvidence?: (cards: EvidenceCard[]) => void;
+  onScores?: (payload: CompetencyScorePayload) => void;
   onError?: (msg: string) => void;
 }
 
@@ -356,6 +363,10 @@ export class InterviewRealtimeManager {
 
     this.socket.on("evidence", (data: EvidenceCard[]) => {
       callbacks.onEvidence?.(data);
+    });
+
+    this.socket.on("scores", (data: CompetencyScorePayload) => {
+      callbacks.onScores?.(data);
     });
 
     this.socket.on("error", (data: { message: string }) => {

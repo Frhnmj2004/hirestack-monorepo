@@ -1,224 +1,285 @@
-# HireLens Extension — Manual Testing Guide
+# HireLens Extension — Manual Testing Guide (from start)
 
-This guide walks through testing the extension end-to-end. The extension adds a **dedicated HireLens sidebar** (like Sider.ai) on the right side of the Google Meet page — a custom dark panel that shrinks the meeting area. It is **not** the native Google Meet “Add-ons” panel.
+End-to-end manual testing from a clean slate. The extension adds a **dedicated right sidebar** on Google Meet (Sider.ai–style) and a **Dynamic Island** for the current question. All flows can be tested with the **demo fallback** when the backend is offline.
 
 ---
 
 ## Prerequisites
 
-- Chrome or Brave (or any Chromium-based browser).
-- Built extension: run `npm run build` in `hirelens-extension/` and load the `dist` folder as an unpacked extension.
+- **Chrome or Brave** (Chromium-based).
+- **Built extension**: from repo root:
+  ```bash
+  cd hirelens-extension
+  npm install
+  npm run build
+  ```
+- **Optional**: Backend (API gateway + assist-service) running for real interview creation and live pipeline. If backend is down, the sidebar still shows **demo interview(s)** so you can test the full UI.
 
 ---
 
-## 1. Load the extension
+## Part 1 — Install and first load
 
-1. Open `chrome://extensions` (or `brave://extensions`).
+### 1.1 Load the extension
+
+1. Open **`chrome://extensions`** (or **`brave://extensions`**).
 2. Turn **Developer mode** ON (top-right).
 3. Click **Load unpacked**.
-4. Select the **`dist`** folder inside `hirelens-extension` (the folder that contains `manifest.json`, `popup.html`, `content.js`, `background.js`).
-5. Confirm the extension **HireLens Interview Copilot** appears in the list and is enabled.
-6. Optional: Pin the extension so the icon shows in the toolbar (click the puzzle icon → pin HireLens).
+4. Select the **`dist`** folder inside **`hirelens-extension`** (must contain `manifest.json`, `popup.html`, `content.js`, `background.js`).
+5. Confirm **HireLens** appears in the list and is **enabled**.
+6. Optional: Pin the extension (puzzle icon → pin HireLens) so the icon stays in the toolbar.
 
----
+**Check:** No errors on the extensions page; extension card shows name and version.
 
-## 2. Open Google Meet (before starting a session)
+### 1.2 Open the popup (no session)
 
-1. Open a new tab and go to **https://meet.google.com**.
-2. Either:
-   - Join an existing meeting (e.g. use a meet link like `https://meet.google.com/xxx-xxxx-xxx`), or  
-   - Start a new meeting (e.g. “New meeting” → “Start an instant meeting”).
+1. Click the **HireLens** extension icon.
+2. You should see:
+   - **HireLens** title and **Interview Copilot** subtitle.
+   - **“Start an interview”** and short description.
+   - **“Open Google Meet”** button.
+   - **“Interviewer mode”** badge at the bottom.
+3. There is **no session code** field at this stage — sessions are created from the **sidebar on the Meet tab**.
+
+**Check:** Popup shows the landing view with “Open Google Meet” and no code input.
+
+### 1.3 Open Google Meet
+
+1. Click **“Open Google Meet”** in the popup (or manually open **https://meet.google.com** in a new tab).
+2. Either **join** an existing meeting (paste a meet link) or **start** a new one (e.g. “New meeting” → “Start an instant meeting”).
 3. Allow camera/mic if prompted.
-4. Wait until the meeting UI is fully loaded (you see yourself and/or others, and the bottom bar with mute/camera/leave).
+4. Wait until the meeting UI is fully loaded.
 
-**Check:** The meeting fills the window. There is no HireLens sidebar yet — that appears only after you start a session from the extension.
+**Check:** Meet tab is open and the main meeting area is visible.
 
 ---
 
-## 3. Start a session from the extension (first time)
+## Part 2 — Sidebar on Meet (first time)
 
-1. With the **Meet tab** still active (and in focus), click the **HireLens** extension icon in the toolbar.
-2. The extension **popup** opens (small dark glass-style window).
+### 2.1 Sidebar appears
+
+1. With the **Meet tab** in focus, look at the **right side** of the window.
+2. You should see:
+   - The **meeting area shifted left** (margin on the right).
+   - A **dark vertical panel** (HireLens sidebar) on the far right with:
+     - Left rail: icons (Home, Mic, Spark, Flag, Close).
+     - Main area: **“INTERVIEWS”** (or **“Briefing”** if a session is already loaded).
+3. If the sidebar shows **“Loading session…”**, wait a moment or refresh the Meet tab once; the content script may be loading.
+
+**Check:** Dedicated HireLens panel on the right; Meet is shrunk. This is **not** Meet’s native “Add-ons” / “Activities” panel.
+
+### 2.2 Home tab — interview list
+
+1. In the sidebar, the **Home** (first) rail icon should be active; the main area is the **Interviews** view.
+2. You should see:
+   - **“New Interview”** button (Upload JD + Resume → AI generates questions).
+   - Either a **list of interviews** (if backend returned data) or **one demo interview** card (e.g. “Demo Candidate”, “Demo” badge) when backend is down or returns no data.
+3. Each card shows: candidate name, role, level, skills, “Open →”.
+
+**Check:** At least one interview is available (real or demo). “New Interview” is visible.
+
+### 2.3 Open an interview (demo or existing)
+
+1. Click **“Open →”** on one interview card.
+2. The card may show a brief loading state, then the view should switch to **Briefing**.
 3. You should see:
-   - Title: **HireLens**
-   - Subtitle: **Interview Copilot**
-   - A **Session code** input.
-   - Blue **Start interview** button.
-   - Hint: “Use DEMO, 1234, or TEST for mock.”
-4. Enter a valid mock code, e.g. **1234** (or **DEMO** or **TEST**).
-5. Click **Start interview**.
-6. Expected:
-   - Button may show “Authorizing…” briefly.
-   - Then a green message: **“Session started. Look for the HireLens sidebar on the right of the Meet tab.”**
-   - Popup may stay open or you can click away to close it.
+   - **Briefing** in the header.
+   - Candidate name and job role.
+   - **“Start interview”** (or similar) primary button.
+   - Optional: resume highlights, topics, etc., depending on data.
 
-**Check:** No red error. If you see “Refresh the Google Meet tab and try again,” refresh the Meet tab (F5 or Cmd+R) and repeat from step 1 of this section.
+**Check:** Briefing panel is visible; “Start interview” is available.
 
----
+### 2.4 Start the interview
 
-## 4. Confirm the dedicated HireLens sidebar (Sider.ai–style panel)
-
-1. After “Session started,” focus the **Google Meet tab** (click on the meeting area).
-2. Look at the **right side** of the browser window.
-3. You should see:
-   - The **meeting video area has shifted left** (it is no longer full width). The main content has a margin on the right.
-   - A **dark panel** on the far right, full height, with:
-     - Header: **“HireLens”** and a **“Copilot”** badge.
-     - A **close (✕)** button in the header.
-     - Sections below: Candidate, Resume highlights, Topics, Questions, Transcript, Insights, Alerts, Follow-ups, Coverage, Score, Status, Controls.
-4. At the **top center** of the page you should see a **floating dark “pill”** (Dynamic Island) with the **current question** and prev/next arrows.
-
-**Important:** This right panel is the **HireLens sidebar**, not the native Google “Add-ons” / “Activities” panel. If you also have Meet’s own sidebar open, you will see two panels: Meet’s (e.g. Chat, Add-ons) and ours (HireLens — Copilot). Ours is the one with “HireLens” in the header and the sections listed above.
-
-**Check:**  
-- Meet content is visibly shrunk (margin on the right).  
-- HireLens sidebar is visible with Candidate, Questions, etc.  
-- Dynamic Island shows at top center with a question.
-
----
-
-## 5. Interact with the sidebar and island
-
-1. **Questions list**
-   - In the sidebar, find the **Questions** section.
-   - Click a different question row.
-   - The **Dynamic Island** at the top should update to show that question’s text.
-   - The selected row should be highlighted (e.g. blue tint).
-
-2. **Prev/Next**
-   - In the Dynamic Island, click the **→** (next) button.
-   - The current question should advance; the sidebar’s highlighted question and the island text should match.
-   - Click **←** (prev) and confirm it goes back.
-
-3. **Topics**
-   - In the sidebar, find **Topics**.
-   - Click a topic (e.g. “Technical knowledge”).
-   - The topic should expand and show its questions.
-
-4. **Other sections**
-   - Scroll the sidebar and confirm you see mock data for:
-     - Candidate (name, experience, skills).
-     - Resume highlights (projects, achievements).
-     - Transcript (interviewer/candidate lines).
-     - Insights (bullets).
-     - Alerts (e.g. experience mismatch).
-     - Follow-ups (suggested questions).
-     - Coverage (missing competencies, suggested question).
-     - Score (bars for technical, communication, etc.).
-     - Status (duration, questions asked).
-     - Controls (Next question, Generate follow-up, Mark strong/weak).
-
-5. **Close sidebar**
-   - Click the **✕** in the sidebar header.
-   - Expected: The HireLens sidebar and the Dynamic Island disappear, and the Meet content expands back to full width (no right margin).
-
-**Check:** All sections render without errors; closing the sidebar removes our UI and restores Meet width.
-
----
-
-## 6. Reopen extension popup — session active (no code form)
-
-1. After you have started a session (e.g. with **1234**), close the extension popup if it’s open.
-2. Click the **HireLens** extension icon again.
-3. Expected:
-   - You **do not** see the Session code input or “Start interview.”
-   - You see: **“Session active. Use the HireLens sidebar on your Google Meet tab (the dark panel on the right, not Meet’s Add-ons).”**
-   - A button: **End session**.
-4. This confirms: once a session is active, reopening the popup does **not** show the code prompt again.
-
-**Check:** With an active session, the popup shows only the “Session active” message and “End session,” not the code form.
-
----
-
-## 7. End session from popup
-
-1. With the popup open in “Session active” state, click **End session**.
+1. Click **“Start interview”** in the sidebar.
 2. Expected:
-   - Popup updates and now shows the **Session code** input and **Start interview** again (same as first time).
-3. If the HireLens sidebar was still open on the Meet tab, it should close and Meet should expand to full width (the extension sends a close message to the content script).
+   - The sidebar switches to the **Interview** tab (second rail icon).
+   - **Dynamic Island** appears at the **top center** of the page (dark glass pill with current question, job/candidate, progress dots, prev/next).
+   - **Live Q&A** panel may appear at the **top-left** (glass style) with “Now asking” and transcript area.
+   - Interview header in sidebar: candidate name, role, **timer**, **“X/Y covered”**, **“X/Y topics done”**, progress bar, and **“Now asking”** with the current question text.
+   - **Topic tree** at the top: topics with ▶/▼; each topic shows questions (Q1, Q2, …) with ○/✓ to mark answered.
+   - Below: **Topics & questions** accordion with the same questions.
 
-**Check:** After “End session,” the popup resets to the code form and the sidebar closes if it was open.
-
----
-
-## 8. End session from sidebar only
-
-1. Start a session again (code **1234** → Start interview).
-2. Confirm the HireLens sidebar is visible.
-3. In the **sidebar**, click the **✕** (close) in the header.
-4. Sidebar and Dynamic Island disappear; Meet expands.
-5. Click the **extension icon** again.
-6. Expected: Popup still shows **“Session active”** (session is still in storage). So you can either:
-   - Click **End session** in the popup to clear it, or  
-   - Leave it; the sidebar can be “reopened” by having the content script run again (e.g. refresh Meet and the script will load the session from storage and show the sidebar).
-
-**Check:** Closing only the sidebar does not clear the session; the popup still shows “Session active” until you click “End session.”
+**Check:** Dynamic Island and Live Q&A visible; sidebar shows Interview tab with progress and topic tree.
 
 ---
 
-## 9. Invalid session code
+## Part 3 — Interview tab behaviour
 
-1. Open the extension popup (with or without an active session; if active, first click **End session**).
-2. Enter an invalid code, e.g. **0000** or **WRONG**.
-3. Click **Start interview**.
-4. Expected: Red error message, e.g. **“Invalid or expired session code. Try DEMO, 1234, or TEST.”** No sidebar appears.
+### 3.1 Question progress and “Now asking”
 
-**Check:** Invalid codes are rejected and no session is stored.
+1. In the **Topic tree** or in **Topics & questions**, click a **different question** (e.g. Q2 or Q3).
+2. **Dynamic Island** should update to show that question’s text.
+3. **“Now asking”** in the sidebar should show the same question.
+4. The selected row should be **highlighted** (e.g. blue).
+
+**Check:** Changing the selected question updates the island and “Now asking” in sync.
+
+### 3.2 Mark question as answered
+
+1. Click the **○** (circle) next to the **current** question (or any question) to mark it answered.
+2. It should turn into **✓** and the question row may look slightly dimmed (answered state).
+3. **Header stats** should update: **“X/Y covered”** and **“X/Y topics done”** increase when enough questions in a topic are answered.
+4. **Dynamic Island** progress dots: the corresponding dot should appear **filled** (done), and the label should show “X answered · Qn/total”.
+
+**Check:** Progress (covered, topics done, island dots) updates when you mark questions answered.
+
+### 3.3 Topic tree expand/collapse
+
+1. In the **Topic tree** section, click a **topic row** (e.g. “Microservices Architecture”).
+2. The chevron should toggle **▶** ↔ **▼** and the list of questions under that topic should **show or hide**.
+3. Toggle another topic and confirm each topic expands/collapses independently.
+
+**Check:** Topic tree expands and collapses per topic; state is independent.
+
+### 3.4 Prev/Next in Dynamic Island
+
+1. Click **›** (next) in the Dynamic Island.
+2. The current question should advance; sidebar and island should stay in sync.
+3. Click **‹** (prev) and confirm it goes back.
+
+**Check:** Prev/Next in the island change the current question and sidebar selection.
+
+### 3.5 Live Q&A stream
+
+1. After starting the interview, the **top-left** panel should show **“Live Q&A”**.
+2. **“Now asking”** should show the current question.
+3. When the backend sends **transcript** (or in mock), **candidate (A)** lines can appear in the scrollable area.
+4. When you **change the question** (click or prev/next), a new **interviewer (Q)** line can be added for the new “Now asking” question.
+
+**Check:** Live Q&A panel shows current question and transcript lines when available.
 
 ---
 
-## 10. Meet tab not active
+## Part 4 — Insights, follow-ups, flags
 
-1. End any active session (popup → End session).
-2. Open a tab that is **not** Google Meet (e.g. a blank tab or any other site).
-3. Click the HireLens extension icon.
-4. Enter **1234** and click **Start interview**.
-5. Expected: Red error: **“Open a Google Meet tab first, then try again.”**
+### 4.1 Insights tab
 
-**Check:** Session is not started when the current tab is not Meet.
+1. Click the **Insights** (Spark) rail icon in the sidebar.
+2. You should see:
+   - **Follow-ups** (for the current question; or “No follow-ups yet” if none).
+   - **Follow-up topics** (if any), grouped by competency.
+   - **Key insights**, **Skill signals**, **Competency scores** when data exists.
+
+**Check:** Insights tab opens; follow-ups and follow-up topics render when present.
+
+### 4.2 Flags tab
+
+1. Click the **Flags** (Flag) rail icon.
+2. If there are **no** flags: “No flags detected yet” and short explanation.
+3. If the backend has sent **alerts**: list of flags with type, confidence, claim, “Resume says”, “Candidate said”, analysis, suggested question.
+4. When **new flags** arrive (backend sends new alerts), a **toast** should appear at the **top center**: “New flag(s) detected — check Flags tab”, then auto-dismiss after a few seconds.
+
+**Check:** Flags tab shows existing flags; new flags trigger the toast (if backend sends alerts).
 
 ---
 
-## 11. Refresh Meet and persistence
+## Part 5 — Persistence and popup
 
-1. Start a session on a Meet tab (e.g. **1234** → Start interview).
-2. Confirm the HireLens sidebar is visible.
-3. **Refresh the Meet tab** (F5 or Cmd+R).
-4. Wait for the meeting to reload.
-5. Expected: After the page loads, the content script runs again and reads the session from storage. The **HireLens sidebar and Dynamic Island should appear again** without you re-entering the code or clicking Start interview.
+### 5.1 Persist progress (refresh)
 
-**Check:** Session survives a Meet tab refresh; sidebar reappears automatically.
+1. With an **active interview** (Interview tab, timer running), mark **one or two questions** as answered and/or change the current question.
+2. **Refresh the Meet tab** (F5 or Cmd+R).
+3. After the page reloads, the **sidebar and Dynamic Island** should reappear.
+4. **Progress** (X/Y covered, topics done, which questions are answered) and **current question** should be **restored** (persisted to `chrome.storage.local`).
+
+**Check:** After refresh, session and progress are restored without re-opening or re-starting.
+
+### 5.2 Popup when session is active
+
+1. With the interview still running (or after refresh with session restored), click the **HireLens** extension icon.
+2. You should see:
+   - **“Session active”**
+   - Candidate name and role.
+   - **“Show sidebar on Meet”** button.
+   - **“End session”** button.
+3. There is **no** session code input in this state.
+
+**Check:** Popup shows “Session active” and the two buttons, not the landing or code form.
+
+### 5.3 Show sidebar on Meet (from popup)
+
+1. If you had closed the Meet tab or switched to another tab, open the **Meet tab** again (same or new meeting).
+2. Click the extension icon and click **“Show sidebar on Meet”**.
+3. The **sidebar and island** should appear on the Meet tab (session is sent from storage).
+
+**Check:** “Show sidebar on Meet” brings the copilot back on the correct tab.
+
+### 5.4 End session (from popup)
+
+1. Click the extension icon and click **“End session”**.
+2. Popup should return to the **landing** view (“Start an interview”, “Open Google Meet”).
+3. On the **Meet tab**, the HireLens sidebar and Dynamic Island should **disappear** and the meeting area should expand to full width.
+
+**Check:** End session clears state and removes UI from Meet.
+
+### 5.5 Close sidebar only (✕)
+
+1. Start again: open Meet, open an interview from the list, **Start interview**.
+2. In the **sidebar**, click the **✕** (close) in the header.
+3. Sidebar and Dynamic Island should **disappear**; Meet expands.
+4. Click the extension icon again: popup should still show **“Session active”** (session remains in storage).
+5. You can click **“Show sidebar on Meet”** to bring the sidebar back, or **“End session”** to clear everything.
+
+**Check:** Closing the sidebar does not clear the session; popup still shows “Session active” until “End session”.
 
 ---
 
-## 12. Quick checklist
+## Part 6 — New interview (with backend)
 
-| Step | What to do | Expected |
-|------|------------|----------|
+*(Skip if backend is not running; demo flow is enough for UI testing.)*
+
+### 6.1 Create new interview
+
+1. On the **Meet tab**, in the sidebar **Home** tab, click **“New Interview”**.
+2. Upload **Job Description** (PDF/DOCX/TXT) and **Candidate Resume** (PDF/DOCX/TXT).
+3. Fill **Candidate details**: Name, Email (optional), Role, Level, Department.
+4. Click **“Generate Interview Plan”**.
+5. If the backend is up: progress messages, then the new interview is created and you are taken to **Briefing** (or session is set). If the backend is down: error “Failed to create interview. Check the backend is running.”
+
+**Check:** With backend running, a new interview is created and you can start it; without backend, a clear error is shown.
+
+---
+
+## Part 7 — Quick checklist
+
+| # | Step | Expected |
+|---|------|----------|
 | 1 | Load unpacked from `dist` | Extension appears and is enabled |
-| 2 | Open Meet, join/start meeting | Meet loads normally |
-| 3 | Click extension, enter 1234, Start interview | Green “Session started” |
-| 4 | Look at right side of Meet tab | Dedicated HireLens sidebar (dark panel) + Meet area shrunk; Dynamic Island at top |
-| 5 | Use Questions, prev/next, Topics, scroll sections | All sections show mock data; island updates |
-| 6 | Close sidebar (✕) | Sidebar and island disappear; Meet full width |
-| 7 | Click extension again | “Session active” + End session (no code form) |
-| 8 | End session in popup | Popup shows code form again; sidebar closes if open |
-| 9 | Invalid code | Error message; no session |
-| 10 | Start with non-Meet tab active | “Open a Google Meet tab first” |
-| 11 | Refresh Meet with session active | Sidebar reappears without re-entering code |
+| 2 | Open popup (no session) | Landing: “Start an interview”, “Open Google Meet” |
+| 3 | Open Google Meet (join or start) | Meet loads |
+| 4 | Focus Meet tab | HireLens sidebar on the right; Meet area shrunk |
+| 5 | Home tab | “New Interview” + at least one interview (or demo) |
+| 6 | Open an interview → Briefing | “Start interview” visible |
+| 7 | Start interview | Interview tab, Dynamic Island, Live Q&A, topic tree, progress |
+| 8 | Select another question | Island and “Now asking” update |
+| 9 | Mark a question answered (○ → ✓) | Progress (X/Y covered, dots) updates |
+| 10 | Toggle topic in tree (▶/▼) | Topic expands/collapses |
+| 11 | Prev/Next in island | Current question changes |
+| 12 | Insights tab | Follow-ups, follow-up topics, insights |
+| 13 | Flags tab | List or “No flags”; new flags → toast |
+| 14 | Refresh Meet (with session) | Sidebar reappears; progress restored |
+| 15 | Popup with session active | “Session active”, Show sidebar, End session |
+| 16 | End session | Popup → landing; sidebar and island disappear |
 
 ---
 
 ## Troubleshooting
 
-- **No sidebar after “Session started”**  
-  Refresh the Meet tab once, then click the extension and click **Start interview** again (same code). If it still doesn’t appear, check the browser console (F12 → Console) on the Meet tab for errors.
+- **Sidebar not visible after opening Meet**  
+  Refresh the Meet tab once. The content script runs on `meet.google.com`; if the tab was opened before the extension was loaded, refresh so the script injects.
 
-- **“Receiving end does not exist”**  
-  The content script wasn’t loaded on that tab. Refresh the Meet tab and try again, or ensure you clicked **Start interview** while the Meet tab was the active tab.
+- **“Loading session…” forever**  
+  No session in storage and no message from popup. Open the popup and click “Open Google Meet” if needed; then from the sidebar open or create an interview. If you expect a session from a previous run, click “Show sidebar on Meet” from the popup.
 
-- **Popup still shows code form after 1234**  
-  Session is stored in `chrome.storage.session`. If you see the form again immediately after starting, the popup may have opened before the storage write completed. Close and reopen the popup; it should then show “Session active.”
+- **No interviews in the list**  
+  Backend may be down or returning an empty list. You should still see **one demo interview** (“Demo Candidate” with “Demo” badge) so you can test the full flow.
 
-- **Can’t tell which is HireLens vs Meet’s sidebar**  
-  HireLens sidebar has header **“HireLens”** and a **“Copilot”** badge, and sections like Candidate, Questions, Transcript, Insights, Alerts, etc. Google’s panel has “Add-ons,” “Timer,” “Record,” “Transcribe,” etc.
+- **Create interview fails**  
+  “Failed to create interview. Check the backend is running.” → Ensure API gateway and assist-service are up and reachable (e.g. `http://localhost:3000`, `http://localhost:3001` for WebSocket).
+
+- **Console errors on Meet tab**  
+  Open DevTools (F12) on the Meet tab → Console. Fix any red errors (e.g. missing `content.js`, WebSocket or CORS issues).
+
+- **HireLens vs Meet’s sidebar**  
+  HireLens: header “HireLens”, rail with Home/Mic/Spark/Flag, sections like Interview, Insights, Flags. Meet’s panel: “Add-ons”, “Activities”, “Timer”, etc.

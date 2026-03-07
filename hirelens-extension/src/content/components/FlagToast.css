@@ -1,0 +1,39 @@
+.hl-flag-toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: rgba(28, 28, 30, 0.95);
+  backdrop-filter: saturate(180%) blur(20px);
+  border: 1px solid rgba(255, 149, 0, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  animation: hl-flag-toast-in 0.3s ease-out;
+}
+
+@keyframes hl-flag-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.hl-flag-toast__icon {
+  font-size: 1.1rem;
+}
+
+.hl-flag-toast__text {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.95);
+}

@@ -126,6 +126,15 @@ function TopicTreeView({
   onSelectQuestion: (i: number) => void;
   onMarkAnswered: (id: string, score?: number) => void;
 }) {
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(topics.map((t) => t.id)));
+  const toggle = (id: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
   return (
     <div className="hl-sb__tree">
       <p className="hl-sb__tree-title">Topic tree</p>
@@ -133,37 +142,46 @@ function TopicTreeView({
         {topics.map((topic) => {
           const topicQs = getTopicQuestions(topic, questions);
           const doneCount = topicQs.filter((q) => q.answered).length;
+          const isOpen = expanded.has(topic.id);
           return (
             <div key={topic.id} className="hl-sb__tree-node hl-sb__tree-node--topic">
-              <div className="hl-sb__tree-topic-row">
+              <button
+                type="button"
+                className="hl-sb__tree-topic-row"
+                onClick={() => toggle(topic.id)}
+                aria-expanded={isOpen}
+              >
+                <span className="hl-sb__tree-topic-chevron">{isOpen ? "▼" : "▶"}</span>
                 <span className="hl-sb__tree-topic-name">{topic.name}</span>
                 <span className="hl-sb__tree-topic-count">{doneCount}/{topicQs.length}</span>
-              </div>
-              <div className="hl-sb__tree-children">
-                {topicQs.map((q) => {
-                  const qIdx = questions.findIndex((x) => x.id === q.id);
-                  const isActive = qIdx === currentIndex;
-                  return (
-                    <div
-                      key={q.id}
-                      className={`hl-sb__tree-q ${isActive ? "active" : ""} ${q.answered ? "answered" : ""}`}
-                    >
-                      <button type="button" className="hl-sb__tree-q-btn" onClick={() => onSelectQuestion(qIdx)}>
-                        <span className="hl-sb__tree-q-num">Q{qIdx + 1}</span>
-                        <span className="hl-sb__tree-q-text">{q.text.slice(0, 56)}{q.text.length > 56 ? "…" : ""}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={`hl-sb__tree-q-mark ${q.answered ? "done" : ""}`}
-                        onClick={() => onMarkAnswered(q.id, q.answered ? undefined : parseFloat((5 + Math.random() * 4.5).toFixed(1)))}
-                        title={q.answered ? "Mark unanswered" : "Mark as answered"}
+              </button>
+              {isOpen && (
+                <div className="hl-sb__tree-children">
+                  {topicQs.map((q) => {
+                    const qIdx = questions.findIndex((x) => x.id === q.id);
+                    const isActive = qIdx === currentIndex;
+                    return (
+                      <div
+                        key={q.id}
+                        className={`hl-sb__tree-q ${isActive ? "active" : ""} ${q.answered ? "answered" : ""}`}
                       >
-                        {q.answered ? "✓" : "○"}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
+                        <button type="button" className="hl-sb__tree-q-btn" onClick={() => onSelectQuestion(qIdx)}>
+                          <span className="hl-sb__tree-q-num">Q{qIdx + 1}</span>
+                          <span className="hl-sb__tree-q-text">{q.text.slice(0, 56)}{q.text.length > 56 ? "…" : ""}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`hl-sb__tree-q-mark ${q.answered ? "done" : ""}`}
+                          onClick={() => onMarkAnswered(q.id)}
+                          title={q.answered ? "Mark unanswered" : "Mark as answered"}
+                        >
+                          {q.answered ? "✓" : "○"}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           );
         })}
@@ -740,7 +758,7 @@ function InterviewPanel({
                         <button
                           type="button"
                           className={`hl-sb__topic-q-mark ${q.answered ? "done" : ""}`}
-                          onClick={() => onMarkAnswered(q.id, q.answered ? undefined : parseFloat((5 + Math.random() * 4.5).toFixed(1)))}
+                          onClick={() => onMarkAnswered(q.id)}
                           title={q.answered ? "Mark unanswered" : "Mark answered"}
                         >
                           {q.answered ? "✓" : "○"}
@@ -885,6 +903,9 @@ function FlagsPanel({ session }: { session: InterviewSession }) {
     <div className="hl-sb__panel-content">
       <p className="hl-sb__block-title" style={{ padding: "14px 16px 0" }}>
         {session.alerts.length} flag{session.alerts.length !== 1 ? "s" : ""} detected
+      </p>
+      <p className="hl-sb__dim" style={{ padding: "4px 16px 0", fontSize: "0.7rem" }}>
+        Flag detection is active — contradictions and evidence mismatches from the pipeline appear here.
       </p>
       {session.alerts.map((alert: AlertItem) => {
         const isOpen = openId === alert.id;

@@ -581,12 +581,35 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
+  width: 100%;
+  padding: 4px 0;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.hl-sb__tree-topic-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hl-sb__tree-topic-chevron {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.5);
+  flex-shrink: 0;
 }
 
 .hl-sb__tree-topic-name {
   font-size: 0.75rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+  min-width: 0;
 }
 
 .hl-sb__tree-topic-count {
@@ -887,6 +910,29 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.hl-sb__followup-topic {
+  margin-bottom: 12px;
+  padding-left: 10px;
+  border-left: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.hl-sb__followup-topic-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.hl-sb__followup-topic-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .hl-sb__followup {
