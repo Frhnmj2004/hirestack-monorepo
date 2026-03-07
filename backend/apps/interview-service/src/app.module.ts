@@ -6,9 +6,10 @@ import { ShortlistModule } from './shortlist/shortlist.module';
 import { InterviewsModule } from './interviews/interviews.module';
 import { RagModule } from './rag/rag.module';
 import { EventsModule } from './events/events.module';
+import { DynamicInterviewsModule } from './dynamic-interviews/dynamic-interviews.module';
 
 @Module({
-  imports: [ResumesModule, ShortlistModule, InterviewsModule, RagModule, EventsModule],
+  imports: [ResumesModule, ShortlistModule, InterviewsModule, RagModule, EventsModule, DynamicInterviewsModule],
   controllers: [AppController],
   providers: [AppService],
 })
