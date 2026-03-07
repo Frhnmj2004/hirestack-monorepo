@@ -18,6 +18,12 @@ const config: Config = {
           lavender: "#9B8CFF",
           white: "#FFFFFF",
           gray: "#E6E6F0",
+          light: {
+            bg: "#F7F8FC",
+            surface: "#FFFFFF",
+            textPrimary: "#1A1A2E",
+            textSecondary: "#6B6B8D",
+          }
         },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",

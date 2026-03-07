@@ -6,6 +6,34 @@
 
 @layer base {
   :root {
+    --background: 228 33% 97%;
+    --foreground: 233 28% 14%;
+    --card: 0 0% 100%;
+    --card-foreground: 233 28% 14%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 233 28% 14%;
+    --primary: 248 64% 57%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 248 100% 77%;
+    --secondary-foreground: 233 28% 14%;
+    --muted: 228 33% 95%;
+    --muted-foreground: 240 14% 48%;
+    --accent: 248 100% 77%;
+    --accent-foreground: 233 28% 14%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 31% 94%;
+    --input: 240 31% 94%;
+    --ring: 248 64% 57%;
+    --radius: 0.75rem;
+    --chart-1: 248 64% 57%;
+    --chart-2: 270 60% 60%;
+    --chart-3: 200 70% 55%;
+    --chart-4: 160 60% 50%;
+    --chart-5: 340 65% 55%;
+  }
+
+  .dark {
     --background: 249 7% 4%;
     --foreground: 240 10% 95%;
     --card: 248 40% 9%;
@@ -25,7 +53,6 @@
     --border: 248 30% 18%;
     --input: 248 30% 18%;
     --ring: 248 64% 57%;
-    --radius: 0.75rem;
     --chart-1: 248 64% 57%;
     --chart-2: 270 60% 60%;
     --chart-3: 200 70% 55%;
@@ -39,15 +66,11 @@
     @apply border-border;
   }
 
-  html {
-    /* dark mode handled via layout.tsx className="dark" */
-  }
-
   body {
-    @apply bg-brand-midnight text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased;
     background-image:
       radial-gradient(ellipse 80% 50% at 50% -20%, rgba(90, 70, 218, 0.15), transparent),
-      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(46, 31, 107, 0.2), transparent);
+      radial-gradient(ellipse 60% 40% at 80% 100%, rgba(46, 31, 107, 0.1), transparent);
     background-attachment: fixed;
   }
 
@@ -65,7 +88,7 @@
 
   /* Glassmorphism card */
   .glass-card {
-    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl;
+    @apply bg-white/60 dark:bg-white/5 backdrop-blur-md border border-brand-gray dark:border-white/10 rounded-2xl shadow-xl dark:shadow-none;
   }
 
   /* Glowing violet border on hover */
@@ -73,18 +96,28 @@
     @apply glass-card transition-shadow duration-300 hover:shadow-glow;
   }
 
+  /* --- Marketing (Light Theme) Components --- */
+  .glass-marketing-card {
+    @apply bg-white/60 dark:bg-white/5 backdrop-blur-lg border border-white/30 dark:border-white/10 shadow-xl dark:shadow-none;
+  }
+
+  .btn-marketing-primary {
+    background: linear-gradient(135deg, #5A46DA, #7B6CFF);
+    @apply text-white shadow-lg transition-transform hover:shadow-xl hover:-translate-y-[1px];
+  }
+
   /* Sidebar navigation link */
   .nav-link {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/60 hover:text-white hover:bg-white/8 transition-all duration-200 cursor-pointer select-none;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-brand-light-textSecondary dark:text-white/60 hover:text-brand-light-textPrimary dark:hover:text-white hover:bg-brand-violet/5 dark:hover:bg-white/8 transition-all duration-200 cursor-pointer select-none;
   }
 
   .nav-link.active {
-    @apply text-white bg-brand-violet/20 border border-brand-violet/30 shadow-glow-sm;
+    @apply text-brand-violet bg-brand-violet/10 border-brand-gray dark:text-white dark:bg-brand-violet/20 border border-brand-violet/20 dark:border-brand-violet/30 dark:shadow-glow-sm;
   }
 
   /* Section divider */
   .section-divider {
-    @apply border-t border-white/8 my-4;
+    @apply border-t border-brand-gray dark:border-white/8 my-4;
   }
 
   /* Gradient text */
@@ -94,28 +127,28 @@
 
   /* Input dark themed */
   .input-dark {
-    @apply bg-white/5 border-white/15 text-white placeholder:text-white/40 focus:border-brand-violet focus:ring-1 focus:ring-brand-violet/50 transition-all duration-200;
+    @apply bg-white/80 dark:bg-white/5 border border-brand-gray dark:border-white/15 text-brand-light-textPrimary dark:text-white placeholder:text-brand-light-textSecondary dark:placeholder:text-white/40 focus:border-brand-violet focus:ring-1 focus:ring-brand-violet/50 transition-all duration-200;
   }
 
   /* Status badges */
   .badge-active {
-    @apply bg-emerald-500/15 text-emerald-400 border-emerald-500/30;
+    @apply bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30;
   }
 
   .badge-pending {
-    @apply bg-amber-500/15 text-amber-400 border-amber-500/30;
+    @apply bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30;
   }
 
   .badge-rejected {
-    @apply bg-red-500/15 text-red-400 border-red-500/30;
+    @apply bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/30;
   }
 
   .badge-shortlisted {
-    @apply bg-brand-violet/20 text-brand-lavender border-brand-violet/40;
+    @apply bg-brand-violet/20 text-brand-violet dark:text-brand-lavender border border-brand-violet/40;
   }
 
   .badge-interviewed {
-    @apply bg-sky-500/15 text-sky-400 border-sky-500/30;
+    @apply bg-sky-500/15 text-sky-600 dark:text-sky-400 border border-sky-500/30;
   }
 }
 
