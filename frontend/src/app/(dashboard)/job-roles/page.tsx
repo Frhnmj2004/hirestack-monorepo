@@ -22,7 +22,13 @@ export default function JobRolesPage() {
                 description="Manage your open positions, job descriptions, and view active candidate pools."
             >
                 <Link href={`${ROUTES.JOB_ROLES}/create`}>
-                    <Button className="bg-brand-violet hover:bg-brand-violet/80 text-white border-none shadow-glow-sm">
+                    <Button
+                        className="rounded-xl text-sm font-semibold text-white h-10 px-4 transition-all"
+                        style={{
+                            background: 'linear-gradient(135deg, #5A46DA 0%, #7B6CFF 100%)',
+                            boxShadow: '0 4px 15px rgba(90,70,218,0.35)',
+                        }}
+                    >
                         <Plus className="w-4 h-4 mr-2" />
                         Create Role
                     </Button>
