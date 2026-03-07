@@ -36,7 +36,7 @@ export function Topbar() {
                 <div className="hidden lg:block shrink-0">
                     <p className="text-sm font-semibold text-brand-light-textPrimary leading-none">
                         Good morning 👋
-                    </h2>
+                    </p>
                     <p className="text-xs text-brand-light-textSecondary mt-0.5">
                         Here's what's happening today
                     </p>
