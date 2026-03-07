@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
-    const { pathname } = request.nextUrl;
 
-    // Basic redirect from root to dashboard for convenience during development.
-    // Real auth guarding is handled via client-side AuthProvider for this static-export compatible setup.
-    if (pathname === '/') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
+export function middleware() {
+    // Root route '/' will now render the marketing landing page.
+    // Auth redirection for authenticated users navigating to '/' is handled by AuthProvider.
 
     return NextResponse.next();
 }

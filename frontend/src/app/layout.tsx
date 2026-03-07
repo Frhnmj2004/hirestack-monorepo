@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Poppins, EB_Garamond } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
+import { ThemeProvider } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
 
 const poppins = Poppins({
@@ -27,10 +28,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={cn("min-h-screen font-sans antialiased", poppins.variable, ebGaramond.variable)}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn("min-h-screen font-sans antialiased bg-background text-foreground", poppins.variable, ebGaramond.variable)}>
         <QueryProvider>
-          {children}
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+            {children}
+          </ThemeProvider>
         </QueryProvider>
       </body>
     </html>

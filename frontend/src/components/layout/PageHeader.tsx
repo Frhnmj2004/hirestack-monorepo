@@ -12,9 +12,9 @@ export function PageHeader({ title, description, children }: PageHeaderProps) {
     return (
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
             <div>
-                <h1 className="text-2xl font-bold tracking-tight text-white">{title}</h1>
+                <h1 className="text-2xl font-bold tracking-tight text-brand-light-textPrimary dark:text-white">{title}</h1>
                 {description && (
-                    <p className="text-sm text-white/60 mt-1">{description}</p>
+                    <p className="text-sm text-brand-light-textSecondary dark:text-white/60 mt-1">{description}</p>
                 )}
             </div>
             {children && (

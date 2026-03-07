@@ -13,7 +13,7 @@ export default function DashboardLayout({
     const { isSidebarCollapsed } = useUiStore();
 
     return (
-        <div className="min-h-screen bg-brand-midnight text-foreground flex">
+        <div className="min-h-screen flex">
             <Sidebar />
             <Topbar />
 
