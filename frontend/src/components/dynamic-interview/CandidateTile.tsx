@@ -1,31 +1,19 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { forwardRef } from "react";
 
 interface CandidateTileProps {
   isMuted: boolean;
   isCameraOff: boolean;
-  stream: MediaStream | null;
 }
 
-export default function CandidateTile({
-  isMuted,
-  isCameraOff,
-  stream,
-}: CandidateTileProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [stream]);
-
+export const CandidateTile = forwardRef<HTMLVideoElement, CandidateTileProps>(
+  ({ isMuted, isCameraOff }, ref) => {
   return (
     <div className="relative w-64 h-48 rounded-xl overflow-hidden bg-gradient-to-br from-gray-800 to-gray-700 shadow-lg border border-gray-600/50">
-      {!isCameraOff && stream ? (
+      {!isCameraOff ? (
         <video
-          ref={videoRef}
+          ref={ref}
           autoPlay
           playsInline
           muted
@@ -81,4 +69,8 @@ export default function CandidateTile({
       </div>
     </div>
   );
-}
+});
+
+CandidateTile.displayName = "CandidateTile";
+
+export default CandidateTile;

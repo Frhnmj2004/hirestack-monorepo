@@ -13,6 +13,15 @@ import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Allow frontend (Next.js dev) to call the API
+  app.enableCors({
+    origin: ['http://localhost:3001', 'http://localhost:3000'],
+    credentials: true,
+  });
+
+  // All HTTP routes are prefixed with /v1 to match frontend expectations
+  app.setGlobalPrefix('v1');
+
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.NATS,
     options: {

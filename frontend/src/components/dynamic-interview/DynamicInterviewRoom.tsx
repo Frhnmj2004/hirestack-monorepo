@@ -42,8 +42,11 @@ export default function DynamicInterviewRoom({
 }: DynamicInterviewRoomProps) {
   const avatarVideoRef = useRef<HTMLVideoElement>(null);
   const avatarAudioRef = useRef<HTMLAudioElement>(null);
+  const candidateVideoRef = useRef<HTMLVideoElement>(null);
   const roomRef = useRef<Room | null>(null);
   const cleaningUpRef = useRef(false);
+  // Per-connection-attempt abort flag — set to true to cancel an in-flight connect()
+  const connectAbortRef = useRef(false);
 
   const [connectionState, setConnectionState] =
     useState<ConnectionState>("idle");
@@ -52,7 +55,6 @@ export default function DynamicInterviewRoom({
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
   const fetchCredentials = useCallback(async (): Promise<LiveKitCredentials> => {
     const token = localStorage.getItem("attendeeToken");
@@ -96,29 +98,33 @@ export default function DynamicInterviewRoom({
       track: RemoteTrackPublication,
       participant: RemoteParticipant
     ) => {
-      const mediaTrack = track.track;
-      if (!mediaTrack) return;
+      try {
+        const mediaTrack = track.track;
+        if (!mediaTrack) return;
 
-      if (track.kind === Track.Kind.Video && avatarVideoRef.current) {
-        mediaTrack.attach(avatarVideoRef.current);
-        setIsThinking(false);
-      } else if (track.kind === Track.Kind.Audio && avatarAudioRef.current) {
-        mediaTrack.attach(avatarAudioRef.current);
+        if (track.kind === Track.Kind.Video && avatarVideoRef.current) {
+          mediaTrack.attach(avatarVideoRef.current);
+          setIsThinking(false);
+        } else if (track.kind === Track.Kind.Audio && avatarAudioRef.current) {
+          mediaTrack.attach(avatarAudioRef.current);
+        }
+      } catch (err) {
+        // Track may not be ready yet — LiveKit will retry via TrackSubscribed
+        console.warn("[DynamicInterview] attachRemoteTrack skipped:", err);
       }
     },
     []
   );
 
   const updateLocalStream = useCallback((localParticipant: LocalParticipant) => {
-    const tracks: MediaStreamTrack[] = [];
-    localParticipant.audioTrackPublications.forEach((pub) => {
-      if (pub.track?.mediaStreamTrack) tracks.push(pub.track.mediaStreamTrack);
-    });
-    localParticipant.videoTrackPublications.forEach((pub) => {
-      if (pub.track?.mediaStreamTrack) tracks.push(pub.track.mediaStreamTrack);
-    });
-    if (tracks.length > 0) {
-      setLocalStream(new MediaStream(tracks));
+    try {
+      localParticipant.videoTrackPublications.forEach((pub) => {
+        if (pub.track && candidateVideoRef.current) {
+          pub.track.attach(candidateVideoRef.current);
+        }
+      });
+    } catch (err) {
+      console.warn("[DynamicInterview] attach local stream skipped:", err);
     }
   }, []);
 
@@ -127,6 +133,8 @@ export default function DynamicInterviewRoom({
       return;
     if (cleaningUpRef.current) return;
 
+    // Mark this connection attempt as active
+    connectAbortRef.current = false;
     setConnectionState("connecting");
     setErrorMessage(null);
 
@@ -137,26 +145,21 @@ export default function DynamicInterviewRoom({
         await existing.disconnect(true);
       }
 
-      /*const creds = await fetchCredentials();*/
-      const creds = {
-        livekit_url: "ws://localhost:7880",
-        livekit_token: "fake-token",
-        livekit_room: "test-room",
-        session_id: sessionId,
-        face_id: "dev",
-      }; /* TILL HERE */
-      if (cleaningUpRef.current) return;
+      if (cleaningUpRef.current || connectAbortRef.current) return;
+
+      // Fetch real LiveKit credentials from backend
+      const creds = await fetchCredentials();
+      console.log(`[DynamicInterview] Connecting to LiveKit: ${creds.livekit_url}, room: ${creds.livekit_room}`);
+
+      if (cleaningUpRef.current || connectAbortRef.current) return;
 
       const room = new Room({
         adaptiveStream: true,
         dynacast: true,
         videoCaptureDefaults: {
-          resolution: {
-            width: 1280,
-            height: 720,
-    },
-  },
-});
+          resolution: { width: 1280, height: 720 },
+        },
+      });
       roomRef.current = room;
 
       room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
@@ -196,16 +199,37 @@ export default function DynamicInterviewRoom({
       room.on(RoomEvent.ConnectionStateChanged, (state) => {
         if (state === LKConnectionState.Disconnected && !cleaningUpRef.current) {
           setConnectionState("error");
-          setErrorMessage("Connection lost");
+          setErrorMessage("Connection lost. Please retry.");
         }
       });
 
+      // Connect to LiveKit room
       await room.connect(creds.livekit_url, creds.livekit_token);
+
+      // Guard: component may have been unmounted while connect() was in flight
+      if (cleaningUpRef.current || connectAbortRef.current) {
+        room.disconnect(true);
+        return;
+      }
+
       setConnectionState("connected");
 
-      await room.localParticipant.setCameraEnabled(true);
-      await room.localParticipant.setMicrophoneEnabled(true);
-      updateLocalStream(room.localParticipant);
+      // Enable camera + mic — both are non-fatal, interview continues either way
+      try {
+        await room.localParticipant.setCameraEnabled(true);
+      } catch {
+        console.warn("[DynamicInterview] Camera not available, continuing with audio only");
+      }
+      try {
+        await room.localParticipant.setMicrophoneEnabled(true);
+      } catch {
+        console.warn("[DynamicInterview] Microphone enable failed", );
+      }
+      // Small delay so LiveKit track objects are fully initialized before we build the MediaStream
+      await new Promise(resolve => setTimeout(resolve, 200));
+      if (!cleaningUpRef.current && !connectAbortRef.current) {
+        updateLocalStream(room.localParticipant);
+      }
 
       // Attach any already-subscribed remote tracks
       room.remoteParticipants.forEach((participant) => {
@@ -216,23 +240,40 @@ export default function DynamicInterviewRoom({
         });
       });
     } catch (err) {
-      if (cleaningUpRef.current) return;
-      console.error("[DynamicInterview] Failed to start session:", err);
+      // Silently discard errors caused by component unmounting mid-connect
+      if (cleaningUpRef.current || connectAbortRef.current) return;
+
+      console.error("[DynamicInterview] Connection error:", err);
+
+      // Convert browser-internal errors (DOMException) to readable messages
+      let message = "Failed to connect to interview room.";
+      if (err instanceof Error) {
+        if (err.name === "DOMException" || err.message?.includes("object can not be found")) {
+          message = "Could not connect to the interview server. Please check your internet connection and retry.";
+        } else if (err.message?.includes("Failed to fetch") || err.message?.includes("NetworkError")) {
+          message = "Network error — could not reach the interview service. Is the backend running?";
+        } else {
+          message = err.message;
+        }
+      }
+
       setConnectionState("error");
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to start session"
-      );
+      setErrorMessage(message);
     }
   }, [connectionState, fetchCredentials, attachRemoteTrack, updateLocalStream]);
 
   useEffect(() => {
     cleaningUpRef.current = false;
+    connectAbortRef.current = false;
+    // 600ms delay: safely outlasts React 18 StrictMode's mount→unmount→remount cycle
+    // so we only attempt connection on the final stable mount
     const timeout = setTimeout(() => {
       startSession();
-    }, 150);
+    }, 600);
 
     return () => {
       cleaningUpRef.current = true;
+      connectAbortRef.current = true; // abort any in-flight connect()
       clearTimeout(timeout);
       const room = roomRef.current;
       roomRef.current = null;
@@ -386,9 +427,9 @@ export default function DynamicInterviewRoom({
             />
             <div className="absolute bottom-4 right-4 z-10">
               <CandidateTile
+                ref={candidateVideoRef}
                 isMuted={isMuted}
                 isCameraOff={isCameraOff}
-                stream={localStream}
               />
             </div>
           </div>

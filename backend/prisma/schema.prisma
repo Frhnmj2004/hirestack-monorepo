@@ -152,3 +152,20 @@ model ResumeChunk {
   @@index([candidateId])
   @@map("resume_chunks")
 }
+
+// Dynamic interview sessions — persisted so frontend can retrieve token/status
+model DynamicSession {
+  id             String   @id
+  livekitRoom    String   @map("livekit_room")
+  wsUrl          String   @map("ws_url")
+  faceId         String?  @map("face_id")
+  status         String   @default("active")
+  candidateEmail String?  @map("candidate_email")
+  questions      String?  // JSON stringified array
+  systemPrompt   String?  @map("system_prompt")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("dynamic_sessions")
+}
