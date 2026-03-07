@@ -3,6 +3,15 @@
  * content script reads it and listens for HIRELENS_START_SESSION.
  */
 
+// When extension is loaded/reloaded, tell all tabs so old content scripts can show "Refresh this page"
+chrome.tabs.query({}, (tabs) => {
+  for (const tab of tabs) {
+    if (tab?.id) {
+      chrome.tabs.sendMessage(tab.id, { type: "HIRELENS_EXTENSION_RELOADED" }).catch(() => {});
+    }
+  }
+});
+
 chrome.runtime.onMessage.addListener(
   (
     msg: { type: string },

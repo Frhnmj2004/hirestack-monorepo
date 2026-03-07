@@ -9,6 +9,8 @@ export interface StreamCallbacks {
 
 const TURN_SILENCE_MS = 2000;
 const DEFAULT_MODEL = 'nova-2';
+/** Max audio chunks to buffer before Deepgram socket is open (~5s at 50 chunks/5s) */
+const MAX_AUDIO_BUFFER_CHUNKS = 150;
 
 interface SocketLike {
   on(event: string, cb: (...args: unknown[]) => void): void;
@@ -23,6 +25,8 @@ export class StreamingService {
     string,
     {
       socket: SocketLike;
+      socketReady: boolean;
+      audioBuffer: Buffer[];
       buffer: string;
       lastActivity: number;
       timer: ReturnType<typeof setTimeout> | null;
@@ -56,6 +60,8 @@ export class StreamingService {
 
     const state = {
       socket: connection as SocketLike,
+      socketReady: false,
+      audioBuffer: [] as Buffer[],
       buffer: '',
       lastActivity: Date.now(),
       timer: null as ReturnType<typeof setTimeout> | null,
@@ -64,7 +70,14 @@ export class StreamingService {
     };
     this.sessions.set(sessionId, state);
 
-    connection.on('open', () => {});
+    connection.on('open', () => {
+      state.socketReady = true;
+      if (state.audioBuffer.length > 0) {
+        console.log('[StreamingService] Deepgram socket open — flushing', state.audioBuffer.length, 'buffered chunks for session', sessionId);
+        for (const chunk of state.audioBuffer) state.socket.sendMedia(chunk);
+        state.audioBuffer.length = 0;
+      }
+    });
 
     connection.on('message', (data: unknown) => {
       const msg = data as { channel?: { alternatives?: Array<{ transcript?: string; is_final?: boolean }> } };
@@ -102,6 +115,15 @@ export class StreamingService {
   sendAudio(sessionId: string, audioBuffer: Buffer): void {
     const state = this.sessions.get(sessionId);
     if (!state?.socket) return;
+    if (!state.socketReady) {
+      if (state.audioBuffer.length === 0) {
+        console.log('[StreamingService] Deepgram not open yet — buffering audio for session', sessionId);
+      }
+      if (state.audioBuffer.length < MAX_AUDIO_BUFFER_CHUNKS) {
+        state.audioBuffer.push(Buffer.from(audioBuffer));
+      }
+      return;
+    }
     state.socket.sendMedia(audioBuffer);
   }
 

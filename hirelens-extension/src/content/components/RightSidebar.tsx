@@ -24,6 +24,9 @@ interface RightSidebarProps {
   session: InterviewSession | null;
   currentIndex: number;
   durationSeconds: number;
+  collapsed: boolean;
+  onCollapse: () => void;
+  onExpand: () => void;
   onClose: () => void;
   onSelectQuestion: (index: number) => void;
   onMarkAnswered: (questionId: string, score?: number) => void;
@@ -89,6 +92,11 @@ const IconCheckCircle = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
     <polyline points="22 4 12 14.01 9 11.01" />
+  </svg>
+);
+const IconExpand = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="15 18 9 12 15 6" />
   </svg>
 );
 
@@ -979,6 +987,9 @@ export function RightSidebar({
   onMarkAnswered,
   onStartInterview,
   onSessionCreated,
+  collapsed,
+  onCollapse,
+  onExpand,
 }: RightSidebarProps) {
   const [tab, setTab] = useState<Tab>("home");
 
@@ -993,64 +1004,80 @@ export function RightSidebar({
   const tabTitle = { home: session ? "Briefing" : "Interviews", interview: "Interview", insights: "Insights", flags: "Flags" }[tab];
 
   return (
-    <aside className="hl-sb" role="complementary" aria-label="HireLens Copilot">
+    <aside className={`hl-sb ${collapsed ? "hl-sb--collapsed" : ""}`} role="complementary" aria-label="HireLens Copilot">
       <nav className="hl-sb__rail">
-        <div className="hl-sb__rail-top">
-          <div className="hl-sb__rail-logo">
-            <span className="hl-sb__rail-logo-dot" />
+        {!collapsed && (
+          <div className="hl-sb__rail-top">
+            <div className="hl-sb__rail-logo">
+              <span className="hl-sb__rail-logo-dot" />
+            </div>
+
+            <button type="button" className={`hl-sb__rail-btn ${tab === "home" ? "active" : ""}`} onClick={() => setTab("home")} title={session ? "Briefing" : "Interviews"}>
+              <IconHome />
+            </button>
+
+            <button
+              type="button"
+              className={`hl-sb__rail-btn ${tab === "interview" ? "active" : ""} ${interviewLocked ? "locked" : ""}`}
+              onClick={() => !interviewLocked && setTab("interview")}
+              title={interviewLocked ? "Start interview first" : "Interview"}
+            >
+              <IconMic />
+            </button>
+
+            <button
+              type="button"
+              className={`hl-sb__rail-btn ${tab === "insights" ? "active" : ""} ${interviewLocked ? "locked" : ""}`}
+              onClick={() => !interviewLocked && setTab("insights")}
+              title={interviewLocked ? "Start interview first" : "Insights & Follow-ups"}
+            >
+              <IconSpark />
+              {followUpCount > 0 && !interviewLocked && (
+                <span className="hl-sb__rail-badge">{followUpCount}</span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className={`hl-sb__rail-btn ${tab === "flags" ? "active" : ""} ${interviewLocked ? "locked" : ""}`}
+              onClick={() => !interviewLocked && setTab("flags")}
+              title={interviewLocked ? "Start interview first" : "Flags"}
+            >
+              <IconFlag />
+              {flagCount > 0 && !interviewLocked && (
+                <span className="hl-sb__rail-badge hl-sb__rail-badge--warn">{flagCount}</span>
+              )}
+            </button>
           </div>
-
-          <button type="button" className={`hl-sb__rail-btn ${tab === "home" ? "active" : ""}`} onClick={() => setTab("home")} title={session ? "Briefing" : "Interviews"}>
-            <IconHome />
-          </button>
-
-          <button
-            type="button"
-            className={`hl-sb__rail-btn ${tab === "interview" ? "active" : ""} ${interviewLocked ? "locked" : ""}`}
-            onClick={() => !interviewLocked && setTab("interview")}
-            title={interviewLocked ? "Start interview first" : "Interview"}
-          >
-            <IconMic />
-          </button>
-
-          <button
-            type="button"
-            className={`hl-sb__rail-btn ${tab === "insights" ? "active" : ""} ${interviewLocked ? "locked" : ""}`}
-            onClick={() => !interviewLocked && setTab("insights")}
-            title={interviewLocked ? "Start interview first" : "Insights & Follow-ups"}
-          >
-            <IconSpark />
-            {followUpCount > 0 && !interviewLocked && (
-              <span className="hl-sb__rail-badge">{followUpCount}</span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            className={`hl-sb__rail-btn ${tab === "flags" ? "active" : ""} ${interviewLocked ? "locked" : ""}`}
-            onClick={() => !interviewLocked && setTab("flags")}
-            title={interviewLocked ? "Start interview first" : "Flags"}
-          >
-            <IconFlag />
-            {flagCount > 0 && !interviewLocked && (
-              <span className="hl-sb__rail-badge hl-sb__rail-badge--warn">{flagCount}</span>
-            )}
-          </button>
-        </div>
+        )}
 
         <div className="hl-sb__rail-bottom">
-          <button type="button" className="hl-sb__rail-btn hl-sb__rail-btn--close" onClick={onClose} title="Close">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+          {collapsed ? (
+            <button type="button" className="hl-sb__rail-btn hl-sb__rail-btn--expand" onClick={onExpand} title="Open sidebar">
+              <IconExpand />
+            </button>
+          ) : (
+            <button type="button" className="hl-sb__rail-btn hl-sb__rail-btn--close" onClick={onCollapse} title="Collapse sidebar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          )}
         </div>
       </nav>
 
+      {!collapsed && (
       <div className="hl-sb__content">
         <div className="hl-sb__content-header">
           <span className="hl-sb__content-title">{tabTitle}</span>
-          {session?.interviewStarted && <span className="hl-sb__live-dot" title="Interview in progress" />}
+          <span className="hl-sb__content-header-right">
+            {session?.interviewStarted && <span className="hl-sb__live-dot" title="Interview in progress" />}
+            {session && (
+              <button type="button" className="hl-sb__end-session-btn" onClick={onClose} title="End session">
+                End session
+              </button>
+            )}
+          </span>
         </div>
 
         <div className="hl-sb__scroll">
@@ -1074,6 +1101,7 @@ export function RightSidebar({
           {tab === "flags" && session && <FlagsPanel session={session} />}
         </div>
       </div>
+      )}
     </aside>
   );
 }

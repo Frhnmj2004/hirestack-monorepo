@@ -2,7 +2,7 @@
  * HireLens Extension API layer.
  *
  * API_BASE points to api-gateway (default: http://localhost:3000)
- * WS_BASE  points to assist-service WebSocket (default: http://localhost:3001)
+ * WS_BASE  points to assist-service WebSocket — must match assist-service PORT (default 3002)
  *
  * When real API fails, mock fallback data is used for offline dev.
  */
@@ -16,7 +16,7 @@ import type {
 } from "./types";
 
 export const API_BASE = "http://localhost:3000";
-export const WS_BASE  = "http://localhost:3001";
+export const WS_BASE  = "http://localhost:3002";
 
 // ── Auth headers ──────────────────────────────────────────────────────────────
 function authHeaders(): Record<string, string> {
@@ -311,6 +311,12 @@ export interface CompetencyScorePayload {
 }
 
 export interface RealtimeCallbacks {
+  onConnect?: () => void;
+  onDisconnect?: () => void;
+  /** Called every N audio chunks sent (for debug panel). */
+  onAudioChunkSent?: (count: number) => void;
+  /** Called when audio is not sent because WS is disconnected (throttled). */
+  onAudioSkipped?: (reason: string) => void;
   onTranscript?: (text: string, isFinal: boolean, speaker?: "interviewer" | "candidate") => void;
   onInsights?: (data: {
     keyInsights: string[];
@@ -324,24 +330,104 @@ export interface RealtimeCallbacks {
   onError?: (msg: string) => void;
 }
 
+const AUDIO_LOG_EVERY_CHUNKS = 50;
+const AUDIO_SKIP_LOG_THROTTLE_MS = 3000;
+
+const AUDIO_CHUNK_SAMPLES = 4096;
+
 export class InterviewRealtimeManager {
   private socket: Socket | null = null;
   private micStream: MediaStream | null = null;
   private audioCtx: AudioContext | null = null;
-  private processor: ScriptProcessorNode | null = null;
+  private workletNode: AudioWorkletNode | null = null;
+  private float32Buffer: number[] = [];
   private currentQuestionId = "";
+  private callbacks: RealtimeCallbacks = {};
+  private audioChunkCount = 0;
+  private lastAudioSkipLog = 0;
 
   connect(sessionId: string, candidateId: string, callbacks: RealtimeCallbacks): void {
     if (this.socket?.connected) return;
 
+    this.callbacks = callbacks;
+    this.audioChunkCount = 0;
+    this.lastAudioSkipLog = 0;
+
+    // #region agent log
+    try {
+      fetch("http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "104cc8" },
+        body: JSON.stringify({
+          sessionId: "104cc8",
+          runId: "ws-flow",
+          hypothesisId: "H1-H4",
+          location: "api.ts:connect",
+          message: "WS connect attempt",
+          data: { WS_BASE, sessionId, candidateId },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+    } catch (_) {}
+    // #endregion
+
     this.socket = io(WS_BASE, {
       transports: ["websocket", "polling"],
-      reconnectionAttempts: 3,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
     });
 
     this.socket.on("connect", () => {
+      // #region agent log
+      try {
+        fetch("http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "104cc8" },
+          body: JSON.stringify({
+            sessionId: "104cc8",
+            runId: "ws-flow",
+            hypothesisId: "H5",
+            location: "api.ts:connect:on(connect)",
+            message: "WS connected",
+            data: { sessionId },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+      } catch (_) {}
+      // #endregion
       console.log("[HireLens WS] connected");
       this.socket!.emit("session", { sessionId, candidateId, activeQuestion: "" });
+      callbacks.onConnect?.();
+    });
+
+    this.socket.on("connect_error", (err: Error & { message?: string }) => {
+      try {
+        // #region agent log
+        try {
+          fetch("http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "104cc8" },
+            body: JSON.stringify({
+              sessionId: "104cc8",
+              runId: "ws-flow",
+              hypothesisId: "H1-H3",
+              location: "api.ts:connect:on(connect_error)",
+              message: "WS connect_error",
+              data: {
+                message: err?.message ?? String(err),
+                type: err?.name,
+                WS_BASE,
+              },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+        } catch (_) {}
+        // #endregion
+        console.error("[HireLens WS] connect_error", err?.message ?? err);
+        callbacks.onDisconnect?.();
+      } catch (_) {
+        // Prevent uncaught errors (e.g. Extension context invalidated) from breaking socket.io
+      }
     });
 
     this.socket.on("transcript", (data: { text: string; isFinal: boolean; speaker?: "interviewer" | "candidate" }) => {
@@ -378,8 +464,14 @@ export class InterviewRealtimeManager {
       callbacks.onError?.(data.message);
     });
 
-    this.socket.on("disconnect", () => {
-      console.log("[HireLens WS] disconnected");
+    this.socket.on("disconnect", (reason) => {
+      try {
+        console.log("[HireLens WS] disconnected", reason);
+        this.callbacks.onAudioSkipped?.("WS disconnected: " + reason);
+        callbacks.onDisconnect?.();
+      } catch (_) {
+        // Prevent uncaught errors from breaking socket.io
+      }
     });
   }
 
@@ -388,38 +480,84 @@ export class InterviewRealtimeManager {
     this.socket?.emit("set_question", { sessionId, activeQuestion: questionText });
   }
 
-  async startMic(sessionId: string): Promise<void> {
-    if (this.micStream) return;
-    try {
-      this.micStream = await navigator.mediaDevices.getUserMedia({
-        audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true } as MediaTrackConstraints,
-      });
-      this.audioCtx = new AudioContext({ sampleRate: 16000 });
-      const source = this.audioCtx.createMediaStreamSource(this.micStream);
-      this.processor = this.audioCtx.createScriptProcessor(4096, 1, 1);
-      this.processor.onaudioprocess = (e) => {
-        if (!this.socket?.connected) return;
-        const float32 = e.inputBuffer.getChannelData(0);
-        const int16 = new Int16Array(float32.length);
-        for (let i = 0; i < float32.length; i++) {
-          int16[i] = Math.max(-32768, Math.min(32767, float32[i] * 32768));
-        }
-        const bytes = new Uint8Array(int16.buffer);
-        let binary = "";
-        for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-        this.socket!.emit("audio", { chunk: btoa(binary), encoding: "linear16" });
-      };
-      source.connect(this.processor);
-      this.processor.connect(this.audioCtx.destination);
-      console.log("[HireLens] Mic streaming started →", sessionId);
-    } catch (err) {
-      console.error("[HireLens] Mic error:", err);
+  private sendAudioChunk(float32: Float32Array): void {
+    if (!this.socket?.connected) {
+      const now = Date.now();
+      if (now - this.lastAudioSkipLog >= AUDIO_SKIP_LOG_THROTTLE_MS) {
+        this.lastAudioSkipLog = now;
+        this.callbacks.onAudioSkipped?.("WS not connected");
+      }
+      return;
+    }
+    const int16 = new Int16Array(float32.length);
+    for (let i = 0; i < float32.length; i++) {
+      int16[i] = Math.max(-32768, Math.min(32767, float32[i] * 32768));
+    }
+    const bytes = new Uint8Array(int16.buffer);
+    let binary = "";
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    this.socket!.emit("audio", { chunk: btoa(binary), encoding: "linear16" });
+    this.audioChunkCount += 1;
+    if (this.audioChunkCount % AUDIO_LOG_EVERY_CHUNKS === 0) {
+      this.callbacks.onAudioChunkSent?.(this.audioChunkCount);
     }
   }
 
+  async startMic(sessionId: string): Promise<void> {
+    if (this.micStream) return Promise.resolve();
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true } as MediaTrackConstraints,
+    });
+    this.micStream = stream;
+    this.float32Buffer = [];
+    this.audioCtx = new AudioContext({ sampleRate: 16000 });
+
+    const processorUrl =
+      typeof chrome !== "undefined" && chrome?.runtime?.getURL
+        ? chrome.runtime.getURL("audio-worklet-processor.js")
+        : "";
+    if (!processorUrl) {
+      this.audioCtx.close();
+      this.audioCtx = null;
+      this.micStream.getTracks().forEach((t) => t.stop());
+      this.micStream = null;
+      throw new Error("HireLens: extension runtime not available for audio worklet");
+    }
+
+    let workletModuleUrl: string | undefined;
+    try {
+      const script = await fetch(processorUrl).then((r) => r.text());
+      const blob = new Blob([script], { type: "application/javascript" });
+      workletModuleUrl = URL.createObjectURL(blob);
+      await this.audioCtx.audioWorklet.addModule(workletModuleUrl);
+    } finally {
+      if (workletModuleUrl) URL.revokeObjectURL(workletModuleUrl);
+    }
+
+    const source = this.audioCtx.createMediaStreamSource(this.micStream);
+    const node = new AudioWorkletNode(this.audioCtx, "capture-processor");
+    this.workletNode = node;
+
+    node.port.onmessage = (e: MessageEvent<{ samples: Float32Array }>) => {
+      const samples = e.data?.samples;
+      if (!samples?.length) return;
+      for (let i = 0; i < samples.length; i++) this.float32Buffer.push(samples[i]);
+      while (this.float32Buffer.length >= AUDIO_CHUNK_SAMPLES) {
+        const chunk = new Float32Array(AUDIO_CHUNK_SAMPLES);
+        for (let i = 0; i < AUDIO_CHUNK_SAMPLES; i++) chunk[i] = this.float32Buffer.shift()!;
+        this.sendAudioChunk(chunk);
+      }
+    };
+
+    source.connect(node);
+    node.connect(this.audioCtx.destination);
+    console.log("[HireLens] Mic streaming started (AudioWorklet) →", sessionId);
+  }
+
   stopMic(): void {
-    this.processor?.disconnect();
-    this.processor = null;
+    this.workletNode?.disconnect();
+    this.workletNode = null;
+    this.float32Buffer = [];
     this.micStream?.getTracks().forEach((t) => t.stop());
     this.micStream = null;
     this.audioCtx?.close().catch(() => {});

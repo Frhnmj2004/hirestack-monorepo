@@ -50,11 +50,97 @@
   background: rgba(255, 80, 80, 0.35);
 }
 
+.hl-dbg__tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(255, 80, 80, 0.25);
+}
+
+.hl-dbg__tab {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 180, 180, 0.8);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.hl-dbg__tab:hover {
+  color: #ff8a8a;
+  background: rgba(255, 80, 80, 0.1);
+}
+
+.hl-dbg__tab--active {
+  color: #ff6b6b;
+  background: rgba(255, 80, 80, 0.15);
+  border-bottom: 2px solid #ff6b6b;
+}
+
+.hl-dbg__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.hl-dbg__state {
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 80, 80, 0.1);
+}
+
+.hl-dbg__state-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.68rem;
+  margin-bottom: 4px;
+}
+
+.hl-dbg__state-row:last-child {
+  margin-bottom: 0;
+}
+
+.hl-dbg__state-label {
+  flex-shrink: 0;
+  width: 72px;
+  color: rgba(255, 180, 180, 0.7);
+  font-weight: 600;
+}
+
+.hl-dbg__state-val {
+  color: rgba(255, 220, 220, 0.95);
+}
+
+.hl-dbg__state-val--ok {
+  color: #7bed9f;
+}
+
+.hl-dbg__state-val--err {
+  color: #ff6b6b;
+}
+
+.hl-dbg__state-val--mono {
+  font-family: ui-monospace, monospace;
+  font-size: 0.65rem;
+}
+
+.hl-dbg__section-label {
+  margin: 6px 12px 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: rgba(255, 180, 180, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .hl-dbg__scroll {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: 280px;
+  max-height: 160px;
   padding: 6px 0;
 }
 
@@ -110,4 +196,69 @@
   overflow-x: auto;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+/* Live stream tab — speaker classification */
+.hl-dbg__stream-hint {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 0.65rem;
+  color: rgba(255, 200, 200, 0.75);
+  line-height: 1.35;
+  border-bottom: 1px solid rgba(255, 80, 80, 0.1);
+}
+
+.hl-dbg__stream {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 220px;
+  padding: 6px 0;
+}
+
+.hl-dbg__stream-row {
+  padding: 6px 12px;
+  border-bottom: 1px solid rgba(255, 80, 80, 0.08);
+  font-size: 0.7rem;
+}
+
+.hl-dbg__stream-row:hover {
+  background: rgba(255, 80, 80, 0.06);
+}
+
+.hl-dbg__stream-row--interviewer {
+  border-left: 3px solid #5ac8fa;
+}
+
+.hl-dbg__stream-row--candidate {
+  border-left: 3px solid #34c759;
+}
+
+.hl-dbg__stream-time {
+  display: inline-block;
+  margin-right: 8px;
+  font-size: 0.62rem;
+  color: rgba(255, 180, 180, 0.6);
+}
+
+.hl-dbg__stream-speaker {
+  display: inline-block;
+  width: 18px;
+  font-weight: 800;
+  color: #ff6b6b;
+}
+
+.hl-dbg__stream-label {
+  margin-left: 4px;
+  font-size: 0.65rem;
+  color: rgba(255, 200, 200, 0.7);
+}
+
+.hl-dbg__stream-text {
+  margin: 4px 0 0 26px;
+  padding: 0;
+  font-size: 0.72rem;
+  color: rgba(255, 240, 240, 0.95);
+  line-height: 1.4;
+  word-break: break-word;
 }

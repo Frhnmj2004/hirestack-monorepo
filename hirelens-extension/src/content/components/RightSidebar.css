@@ -15,6 +15,15 @@
   pointer-events: auto;
   border-radius: 16px 0 0 16px;
   box-shadow: -12px 0 60px rgba(0, 0, 0, 0.6);
+  transition: width 0.25s ease;
+}
+
+.hl-sb--collapsed {
+  width: 48px;
+}
+
+.hl-sb--collapsed .hl-sb__rail {
+  border-radius: 16px 0 0 16px;
 }
 
 /* ── Tab Rail (left column, 48px) ────────────────────────────────────────── */
@@ -93,6 +102,18 @@
   color: #ff6b6b;
 }
 
+.hl-sb__rail-btn--expand {
+  color: rgba(255, 255, 255, 0.5);
+}
+.hl-sb__rail-btn--expand:hover {
+  background: rgba(0, 122, 255, 0.2);
+  color: #5ac8fa;
+}
+
+.hl-sb--collapsed .hl-sb__rail-bottom {
+  justify-content: center;
+}
+
 .hl-sb__rail-badge {
   position: absolute;
   top: 4px;
@@ -148,6 +169,26 @@
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgba(255, 255, 255, 0.5);
+}
+
+.hl-sb__content-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hl-sb__end-session-btn {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.hl-sb__end-session-btn:hover {
+  color: #ff6b6b;
+  background: rgba(255, 69, 58, 0.1);
 }
 
 .hl-sb__live-dot {

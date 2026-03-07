@@ -13,6 +13,7 @@ End-to-end manual testing from a clean slate. The extension adds a **dedicated r
   npm install
   npm run build
   ```
+  **Important:** Load unpacked from the **`dist`** folder (not the project root). After you click **Reload** on `chrome://extensions`, **refresh any open Google Meet tab (F5)** so the new content script loads — otherwise the old script keeps running and you may still see "ScriptProcessorNode deprecated", "connect_error", or "Extension context invalidated".
 - **Optional**: Backend (API gateway + assist-service) running for real interview creation and live pipeline. If backend is down, the sidebar still shows **demo interview(s)** so you can test the full UI.
 
 ---
@@ -24,9 +25,10 @@ End-to-end manual testing from a clean slate. The extension adds a **dedicated r
 1. Open **`chrome://extensions`** (or **`brave://extensions`**).
 2. Turn **Developer mode** ON (top-right).
 3. Click **Load unpacked**.
-4. Select the **`dist`** folder inside **`hirelens-extension`** (must contain `manifest.json`, `popup.html`, `content.js`, `background.js`).
+4. Select the **`dist`** folder inside **`hirelens-extension`** (must contain `manifest.json`, `popup.html`, `content.js`, `background.js`, `audio-worklet-processor.js`). **Do not** select the `hirelens-extension` folder itself — only `dist`.
 5. Confirm **HireLens** appears in the list and is **enabled**.
 6. Optional: Pin the extension (puzzle icon → pin HireLens) so the icon stays in the toolbar.
+7. **After any rebuild:** Click **Reload** on the HireLens card, then **refresh every open Google Meet tab (F5)**. Otherwise the old script keeps running and errors (deprecation, connect_error, context invalidated) will still appear.
 
 **Check:** No errors on the extensions page; extension card shows name and version.
 

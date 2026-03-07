@@ -21,11 +21,16 @@ import sidebarCss from "./components/RightSidebar.css?raw";
 
 const STORAGE_KEY = "hirelens_session";
 const SIDEBAR_WIDTH_PX = 400;
+const SIDEBAR_COLLAPSED_WIDTH_PX = 48;
 const ROOT_ID = "hirelens-copilot-root";
 
 const store = chrome.storage.local;
 
-function applyMeetShrink(enable: boolean) {
+function isContextInvalidatedError(err: unknown): boolean {
+  return err instanceof Error && String(err.message).includes("Extension context invalidated");
+}
+
+function applyMeetShrink(visible: boolean, collapsed?: boolean) {
   const styleId = "hirelens-body-style";
   let el = document.getElementById(styleId) as HTMLStyleElement | null;
   if (!el) {
@@ -33,9 +38,12 @@ function applyMeetShrink(enable: boolean) {
     el.id = styleId;
     document.head.appendChild(el);
   }
-  el.textContent = enable
-    ? `body { margin-right: ${SIDEBAR_WIDTH_PX}px !important; transition: margin-right 0.25s ease; }`
-    : "";
+  if (!visible) {
+    el.textContent = "";
+    return;
+  }
+  const marginPx = collapsed ? SIDEBAR_COLLAPSED_WIDTH_PX : SIDEBAR_WIDTH_PX;
+  el.textContent = `body { margin-right: ${marginPx}px !important; transition: margin-right 0.25s ease; }`;
 }
 
 function ensureHost(): HTMLDivElement {
@@ -50,6 +58,48 @@ function ensureHost(): HTMLDivElement {
   return host;
 }
 
+function ContextInvalidatedBanner() {
+  return (
+    <div
+      className="hl-context-invalidated"
+      role="alert"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 2147483646,
+        padding: "12px 16px",
+        background: "rgba(180, 60, 60, 0.95)",
+        color: "#fff",
+        fontSize: "14px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: "12px",
+        pointerEvents: "auto",
+      }}
+    >
+      <span>HireLens was updated. Refresh this page to continue.</span>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        style={{
+          padding: "6px 14px",
+          background: "#fff",
+          color: "#333",
+          border: "none",
+          borderRadius: "6px",
+          cursor: "pointer",
+          fontWeight: 600,
+        }}
+      >
+        Refresh page
+      </button>
+    </div>
+  );
+}
+
 function ContentApp() {
   const [session, setSession] = useState<InterviewSession | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -59,8 +109,19 @@ function ContentApp() {
   const [flagToast, setFlagToast] = useState<{ count: number } | null>(null);
   const [debugOn, setDebugOn] = useState(false);
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+  const [wsConnected, setWsConnected] = useState(false);
+  const [micStatus, setMicStatus] = useState<"pending" | "ok" | "error">("pending");
+  const [micError, setMicError] = useState<string | null>(null);
+  const [micToast, setMicToast] = useState(false);
+  const [contextInvalidated, setContextInvalidated] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const wsManager = useRef(new InterviewRealtimeManager());
   currentIndexRef.current = currentIndex;
+
+  function handleContextInvalidated(): void {
+    setContextInvalidated(true);
+    wsManager.current.disconnect();
+  }
 
   function applySession(payload: SessionPayload) {
     sessionRef.current = payload.session;
@@ -78,20 +139,40 @@ function ContentApp() {
 
   // ── 0. Debug mode from storage (console + red debug panel) ───────────────────
   useEffect(() => {
-    store.get("hirelens_debug", (r) => {
-      const on = !!(r && (r as { hirelens_debug?: boolean }).hirelens_debug);
-      setDebug(on);
-      setDebugOn(on);
-    });
+    try {
+      store.get("hirelens_debug", (r) => {
+        try {
+          const on = !!(r && (r as { hirelens_debug?: boolean }).hirelens_debug);
+          setDebug(on);
+          setDebugOn(on);
+        } catch (e) {
+          if (isContextInvalidatedError(e)) handleContextInvalidated();
+        }
+      });
+    } catch (e) {
+      if (isContextInvalidatedError(e)) handleContextInvalidated();
+    }
     const onChange = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-      if (area === "local" && "hirelens_debug" in changes) {
-        const on = !!changes.hirelens_debug?.newValue;
-        setDebug(on);
-        setDebugOn(on);
+      try {
+        if (area === "local" && "hirelens_debug" in changes) {
+          const on = !!changes.hirelens_debug?.newValue;
+          setDebug(on);
+          setDebugOn(on);
+        }
+      } catch (e) {
+        if (isContextInvalidatedError(e)) handleContextInvalidated();
       }
     };
-    chrome.storage.onChanged.addListener(onChange);
-    return () => chrome.storage.onChanged.removeListener(onChange);
+    try {
+      chrome.storage.onChanged.addListener(onChange);
+    } catch (e) {
+      if (isContextInvalidatedError(e)) handleContextInvalidated();
+    }
+    return () => {
+      try {
+        chrome.storage.onChanged.removeListener(onChange);
+      } catch (_) {}
+    };
   }, []);
 
   useEffect(() => {
@@ -103,27 +184,43 @@ function ContentApp() {
 
   // ── 1. Read storage on mount ─────────────────────────────────────────────────
   useEffect(() => {
-    store.get(STORAGE_KEY, (result) => {
-      if (chrome.runtime.lastError) return;
-      const payload = (result ?? {})[STORAGE_KEY] as SessionPayload | undefined;
-      if (payload?.session) {
-        applySession(payload);
-        debugLog("state", "Session loaded from storage", { sessionId: payload.session.sessionId });
-      }
-    });
+    try {
+      store.get(STORAGE_KEY, (result) => {
+        try {
+          if (chrome.runtime.lastError) return;
+          const payload = (result ?? {})[STORAGE_KEY] as SessionPayload | undefined;
+          if (payload?.session) {
+            applySession(payload);
+            debugLog("state", "Session loaded from storage", { sessionId: payload.session.sessionId });
+          }
+        } catch (e) {
+          if (isContextInvalidatedError(e)) handleContextInvalidated();
+        }
+      });
+    } catch (e) {
+      if (isContextInvalidatedError(e)) handleContextInvalidated();
+    }
   }, []);
 
   // ── 2. Poll 30s fallback ─────────────────────────────────────────────────────
   useEffect(() => {
     let ticks = 0;
     const id = setInterval(() => {
-      ticks++;
-      if (ticks > 30 || sessionRef.current) { clearInterval(id); return; }
-      store.get(STORAGE_KEY, (result) => {
-        if (chrome.runtime.lastError || sessionRef.current) return;
-        const payload = (result ?? {})[STORAGE_KEY] as SessionPayload | undefined;
-        if (payload?.session) applySession(payload);
-      });
+      try {
+        ticks++;
+        if (ticks > 30 || sessionRef.current) { clearInterval(id); return; }
+        store.get(STORAGE_KEY, (result) => {
+          try {
+            if (chrome.runtime.lastError || sessionRef.current) return;
+            const payload = (result ?? {})[STORAGE_KEY] as SessionPayload | undefined;
+            if (payload?.session) applySession(payload);
+          } catch (e) {
+            if (isContextInvalidatedError(e)) handleContextInvalidated();
+          }
+        });
+      } catch (e) {
+        if (isContextInvalidatedError(e)) handleContextInvalidated();
+      }
     }, 1000);
     return () => clearInterval(id);
   }, []);
@@ -131,12 +228,24 @@ function ContentApp() {
   // ── 3. Storage change ────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-      if (area !== "local" || !(STORAGE_KEY in changes)) return;
-      const newVal = changes[STORAGE_KEY].newValue as SessionPayload | undefined;
-      if (newVal?.session) { applySession(newVal); } else { clearSession(); }
+      try {
+        if (area !== "local" || !(STORAGE_KEY in changes)) return;
+        const newVal = changes[STORAGE_KEY].newValue as SessionPayload | undefined;
+        if (newVal?.session) { applySession(newVal); } else { clearSession(); }
+      } catch (e) {
+        if (isContextInvalidatedError(e)) handleContextInvalidated();
+      }
     };
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
+    try {
+      chrome.storage.onChanged.addListener(handler);
+    } catch (e) {
+      if (isContextInvalidatedError(e)) handleContextInvalidated();
+    }
+    return () => {
+      try {
+        chrome.storage.onChanged.removeListener(handler);
+      } catch (_) {}
+    };
   }, []);
 
   // ── 4. Direct message listener ───────────────────────────────────────────────
@@ -146,28 +255,46 @@ function ContentApp() {
       _sender: chrome.runtime.MessageSender,
       sendResponse: (r?: unknown) => void
     ) => {
-      if (msg.type === "HIRELENS_START_SESSION" && msg.payload?.session) {
-        applySession(msg.payload);
-        sendResponse({ ok: true });
-      } else if (msg.type === "HIRELENS_CLOSE") {
-        clearSession();
-        sendResponse({ ok: true });
-      } else if (msg.type === "HIRELENS_PING") {
-        sendResponse({ ok: true, hasSession: !!sessionRef.current });
-      } else {
+      try {
+        if (msg.type === "HIRELENS_EXTENSION_RELOADED") {
+          handleContextInvalidated();
+          sendResponse({ ok: true });
+          return true;
+        }
+        if (msg.type === "HIRELENS_START_SESSION" && msg.payload?.session) {
+          applySession(msg.payload);
+          sendResponse({ ok: true });
+        } else if (msg.type === "HIRELENS_CLOSE") {
+          clearSession();
+          sendResponse({ ok: true });
+        } else if (msg.type === "HIRELENS_PING") {
+          sendResponse({ ok: true, hasSession: !!sessionRef.current });
+        } else {
+          sendResponse({ ok: false });
+        }
+      } catch (e) {
+        if (isContextInvalidatedError(e)) handleContextInvalidated();
         sendResponse({ ok: false });
       }
       return true;
     };
-    chrome.runtime.onMessage.addListener(listener);
-    return () => chrome.runtime.onMessage.removeListener(listener);
+    try {
+      chrome.runtime.onMessage.addListener(listener);
+    } catch (e) {
+      if (isContextInvalidatedError(e)) handleContextInvalidated();
+    }
+    return () => {
+      try {
+        chrome.runtime.onMessage.removeListener(listener);
+      } catch (_) {}
+    };
   }, []);
 
-  // ── 5. Sidebar always visible on Meet ───────────────────────────────────────
+  // ── 5. Sidebar margin (expanded vs collapsed) ────────────────────────────────
   useEffect(() => {
-    applyMeetShrink(true);
+    applyMeetShrink(true, sidebarCollapsed);
     return () => applyMeetShrink(false);
-  }, []);
+  }, [sidebarCollapsed]);
 
   // ── 6. Interview timer ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -187,7 +314,13 @@ function ContentApp() {
       },
       authorizedAt: Date.now(),
     };
-    const t = setTimeout(() => store.set({ [STORAGE_KEY]: payload }), 300);
+    const t = setTimeout(() => {
+      try {
+        store.set({ [STORAGE_KEY]: payload });
+      } catch (e) {
+        if (isContextInvalidatedError(e)) handleContextInvalidated();
+      }
+    }, 300);
     return () => clearTimeout(t);
   }, [session, currentIndex, durationSeconds]);
 
@@ -198,8 +331,23 @@ function ContentApp() {
 
   // ── Real-time WebSocket connection ───────────────────────────────────────────
   function connectRealtime(sess: InterviewSession) {
+    setWsConnected(false);
     debugLog("ws", "Connecting realtime", { sessionId: sess.sessionId, candidateId: sess.candidate.id });
     wsManager.current.connect(sess.sessionId, sess.candidate.id, {
+      onConnect: () => {
+        setWsConnected(true);
+        debugLog("ws", "WebSocket connected — audio can be sent");
+      },
+      onDisconnect: () => {
+        setWsConnected(false);
+        debugLog("ws", "WebSocket disconnected — audio will not reach backend");
+      },
+      onAudioChunkSent: (count) => {
+        debugLog("audio", "Audio chunks sent to backend", { totalChunks: count });
+      },
+      onAudioSkipped: (reason) => {
+        debugLog("audio", "Audio not sent", { reason });
+      },
       onTranscript: (text, isFinal, speaker) => {
         const who = speaker ?? "candidate";
         debugLog("ws", "Transcript received", { speaker: who, text: text.slice(0, 80), isFinal });
@@ -305,11 +453,15 @@ function ContentApp() {
   // ── Handlers ─────────────────────────────────────────────────────────────────
 
   const handleSessionCreated = (newSession: InterviewSession) => {
-    sessionRef.current = newSession;
-    setSession(newSession);
-    setCurrentIndex(0);
-    setDurationSeconds(0);
-    store.set({ [STORAGE_KEY]: { session: newSession, authorizedAt: Date.now() } });
+    try {
+      sessionRef.current = newSession;
+      setSession(newSession);
+      setCurrentIndex(0);
+      setDurationSeconds(0);
+      store.set({ [STORAGE_KEY]: { session: newSession, authorizedAt: Date.now() } });
+    } catch (e) {
+      if (isContextInvalidatedError(e)) handleContextInvalidated();
+    }
   };
 
   const pushInterviewerQuestion = (questionText: string) => {
@@ -326,21 +478,45 @@ function ContentApp() {
     });
   };
 
-  const handleStartInterview = () => {
+  const handleStartInterview = async () => {
     if (!session) return;
-    debugLog("action", "Start interview", { sessionId: session.sessionId });
-    const q = session.questions[currentIndex];
-    const firstTranscript = q
-      ? [...session.transcript, { id: `tx-q-${Date.now()}`, speaker: "interviewer" as const, text: q.text, timestamp: new Date().toISOString() }]
-      : session.transcript;
-    const updated: InterviewSession = { ...session, interviewStarted: true, transcript: firstTranscript };
-    sessionRef.current = updated;
-    setSession(updated);
-    store.set({ [STORAGE_KEY]: { session: updated, authorizedAt: Date.now() } });
-    connectRealtime(updated);
-    wsManager.current.startMic(updated.sessionId);
-    debugLog("audio", "Mic start requested for session", { sessionId: updated.sessionId });
-    if (q) wsManager.current.setActiveQuestion(updated.sessionId, q.id, q.text);
+    try {
+      debugLog("action", "Start interview", { sessionId: session.sessionId });
+      const q = session.questions[currentIndex];
+      const firstTranscript = q
+        ? [...session.transcript, { id: `tx-q-${Date.now()}`, speaker: "interviewer" as const, text: q.text, timestamp: new Date().toISOString() }]
+        : session.transcript;
+      const updated: InterviewSession = { ...session, interviewStarted: true, transcript: firstTranscript };
+      sessionRef.current = updated;
+      setSession(updated);
+      try {
+        store.set({ [STORAGE_KEY]: { session: updated, authorizedAt: Date.now() } });
+      } catch (e) {
+        if (isContextInvalidatedError(e)) { handleContextInvalidated(); return; }
+        throw e;
+      }
+      connectRealtime(updated);
+      setMicStatus("pending");
+      setMicError(null);
+      debugLog("audio", "Requesting microphone access…", { sessionId: updated.sessionId });
+      try {
+        await wsManager.current.startMic(updated.sessionId);
+        setMicStatus("ok");
+        setMicError(null);
+        debugLog("audio", "Mic started — live transcription active", { sessionId: updated.sessionId });
+      } catch (err) {
+        if (isContextInvalidatedError(err)) { handleContextInvalidated(); return; }
+        const msg = err instanceof Error ? err.message : String(err);
+        const isDenied = /denied|permission|not allowed|NotAllowedError/i.test(msg);
+        setMicStatus("error");
+        setMicError(isDenied ? "Microphone access denied. Allow mic for this tab to enable live transcription." : msg);
+        debugLog("error", "Mic failed", { error: msg });
+        setMicToast(true);
+      }
+      if (q) wsManager.current.setActiveQuestion(updated.sessionId, q.id, q.text);
+    } catch (e) {
+      if (isContextInvalidatedError(e)) handleContextInvalidated();
+    }
   };
 
   const handleSelectQuestion = (i: number) => {
@@ -386,7 +562,11 @@ function ContentApp() {
     if (sess?.sessionId && !sess.sessionId.startsWith("mock-") && !sess.sessionId.startsWith("local-")) {
       try { await endAssistSession(sess.sessionId); } catch { /* ignore */ }
     }
-    store.remove(STORAGE_KEY, () => { /* ignore */ });
+    try {
+      store.remove(STORAGE_KEY, () => { /* ignore */ });
+    } catch (e) {
+      if (isContextInvalidatedError(e)) { handleContextInvalidated(); return; }
+    }
     clearSession();
   };
 
@@ -397,11 +577,22 @@ function ContentApp() {
     ? (session?.followUps ?? []).filter((f) => f.questionId === currentQuestion.id)
     : [];
 
+  if (contextInvalidated) {
+    return <ContextInvalidatedBanner />;
+  }
+
   return (
     <>
       {debugOn && (
         <DebugPanel
           entries={logEntries}
+          transcript={session?.transcript ?? []}
+          wsConnected={wsConnected}
+          micStatus={micStatus}
+          micError={micError}
+          sessionId={session?.sessionId}
+          currentQuestionIndex={currentIndex}
+          followUpCount={session?.followUps.length ?? 0}
           onClear={() => {
             clearLogBuffer();
             setLogEntries([]);
@@ -440,10 +631,44 @@ function ContentApp() {
           onDismiss={() => setFlagToast(null)}
         />
       )}
+      {micToast && session?.interviewStarted && (
+        <div className="hl-mic-toast" role="alert">
+          <p className="hl-mic-toast__text">{micError ?? "Microphone access needed for live transcription."}</p>
+          <div className="hl-mic-toast__actions">
+            <button type="button" className="hl-mic-toast__btn" onClick={async () => {
+              try {
+                setMicToast(false);
+                setMicError(null);
+                setMicStatus("pending");
+                if (sessionRef.current) {
+                  try {
+                    await wsManager.current.startMic(sessionRef.current.sessionId);
+                    setMicStatus("ok");
+                    debugLog("audio", "Mic started (retry)");
+                  } catch (e) {
+                    if (isContextInvalidatedError(e)) { handleContextInvalidated(); return; }
+                    setMicStatus("error");
+                    setMicError(e instanceof Error ? e.message : String(e));
+                    setMicToast(true);
+                  }
+                }
+              } catch (e) {
+                if (isContextInvalidatedError(e)) handleContextInvalidated();
+              }
+            }}>
+              Retry mic
+            </button>
+            <button type="button" className="hl-mic-toast__dismiss" onClick={() => setMicToast(false)}>Dismiss</button>
+          </div>
+        </div>
+      )}
       <RightSidebar
         session={session}
         currentIndex={currentIndex}
         durationSeconds={durationSeconds}
+        collapsed={sidebarCollapsed}
+        onCollapse={() => setSidebarCollapsed(true)}
+        onExpand={() => setSidebarCollapsed(false)}
         onClose={handleClose}
         onSelectQuestion={handleSelectQuestion}
         onMarkAnswered={handleMarkAnswered}

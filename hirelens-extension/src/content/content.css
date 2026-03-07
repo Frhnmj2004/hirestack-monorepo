@@ -7,3 +7,56 @@
   box-sizing: border-box;
   color: #fff;
 }
+
+/* Mic permission toast — shown when mic access fails */
+.hl-mic-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483646;
+  pointer-events: auto;
+  padding: 14px 18px;
+  max-width: 420px;
+  background: rgba(40, 15, 15, 0.95);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 80, 80, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(255, 0, 0, 0.2);
+}
+.hl-mic-toast__text {
+  margin: 0 0 10px;
+  font-size: 0.82rem;
+  color: rgba(255, 220, 220, 0.95);
+  line-height: 1.4;
+}
+.hl-mic-toast__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.hl-mic-toast__btn {
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0, 122, 255, 0.9);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.hl-mic-toast__btn:hover {
+  background: rgba(0, 122, 255, 1);
+}
+.hl-mic-toast__dismiss {
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  color: rgba(255, 200, 200, 0.9);
+  background: transparent;
+  border: 1px solid rgba(255, 80, 80, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.hl-mic-toast__dismiss:hover {
+  background: rgba(255, 80, 80, 0.15);
+}
