@@ -1,0 +1,270 @@
+/* ── Dynamic Island — Apple Intelligence liquid glass ── */
+
+/* Wrapper: top-center, pointer-events:none on shell, auto on contents */
+.hl-di-wrapper {
+  position: fixed;
+  top: 12px;
+  left: 0;
+  right: 400px; /* account for sidebar width so it stays centered in Meet area */
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  z-index: 2147483646;
+  pointer-events: none;
+}
+
+/* Island shell */
+.hl-di {
+  pointer-events: auto;
+  border-radius: 28px;
+  overflow: hidden;
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: top center;
+
+  /* True liquid glass */
+  background: rgba(20, 20, 22, 0.55);
+  backdrop-filter: saturate(200%) blur(32px);
+  -webkit-backdrop-filter: saturate(200%) blur(32px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.08) inset,
+    0 2px 4px rgba(0, 0, 0, 0.08) inset,
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* ── Collapsed pill ── */
+.hl-di--pill {
+  border-radius: 100px;
+  cursor: pointer;
+}
+
+.hl-di--pill:hover {
+  background: rgba(28, 28, 32, 0.72);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 0 0 0.5px rgba(255, 255, 255, 0.12) inset,
+    0 16px 48px rgba(0, 0, 0, 0.55);
+}
+
+.hl-di__pill-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  white-space: nowrap;
+  max-width: 500px;
+}
+
+.hl-di__pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #5ac8fa, #007aff);
+  box-shadow: 0 0 6px rgba(0, 122, 255, 0.7);
+  flex-shrink: 0;
+  animation: hl-pulse 2s ease-in-out infinite;
+}
+
+@keyframes hl-pulse {
+  0%, 100% { box-shadow: 0 0 6px rgba(0, 122, 255, 0.7); }
+  50% { box-shadow: 0 0 14px rgba(0, 122, 255, 1); }
+}
+
+.hl-di__pill-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: rgba(0, 122, 255, 0.9);
+  letter-spacing: 0.04em;
+}
+
+.hl-di__pill-preview {
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hl-di__pill-alert {
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: rgba(255, 159, 10, 0.25);
+  color: #ff9f0a;
+  border: 1px solid rgba(255, 159, 10, 0.4);
+  padding: 1px 6px;
+  border-radius: 100px;
+  flex-shrink: 0;
+}
+
+/* ── Expanded card ── */
+.hl-di--expanded {
+  width: 520px;
+  max-width: calc(100vw - 440px);
+}
+
+.hl-di__body {
+  padding: 16px 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Top row */
+.hl-di__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.hl-di__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hl-di__badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(90, 200, 250, 0.9);
+  background: rgba(90, 200, 250, 0.1);
+  border: 1px solid rgba(90, 200, 250, 0.2);
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.hl-di__sep {
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 0.75rem;
+}
+
+.hl-di__candidate {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+.hl-di__collapse {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 100px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.6rem;
+  padding: 3px 9px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hl-di__collapse:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Question text — the hero */
+.hl-di__question {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.45;
+  margin: 0;
+  /* Subtle shimmer on the text, like Apple Intelligence glow */
+  text-shadow: 0 0 40px rgba(90, 200, 250, 0.15);
+  letter-spacing: -0.01em;
+}
+
+/* Bottom row */
+.hl-di__bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hl-di__progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.hl-di__dots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.hl-di__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  transition: all 0.25s;
+}
+
+.hl-di__dot--done {
+  background: rgba(0, 122, 255, 0.5);
+}
+
+.hl-di__dot--active {
+  width: 18px;
+  border-radius: 100px;
+  background: linear-gradient(90deg, #007aff, #5ac8fa);
+  box-shadow: 0 0 8px rgba(0, 122, 255, 0.6);
+}
+
+.hl-di__counter {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* Nav buttons */
+.hl-di__nav {
+  display: flex;
+  gap: 4px;
+}
+
+.hl-di__nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.hl-di__nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.hl-di__nav-btn--next {
+  background: rgba(0, 122, 255, 0.25);
+  border-color: rgba(0, 122, 255, 0.35);
+  color: #fff;
+}
+
+.hl-di__nav-btn--next:hover:not(:disabled) {
+  background: rgba(0, 122, 255, 0.45);
+  box-shadow: 0 0 12px rgba(0, 122, 255, 0.4);
+}
+
+.hl-di__nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

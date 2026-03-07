@@ -18,6 +18,7 @@ export const PROMPT_NAMES = {
   ANSWER_ANALYSIS: 'answer-analysis',
   CLAIM_EXTRACTION: 'claim-extraction',
   CONTRADICTION_CLARIFY: 'contradiction-clarify',
+  QUESTION_GENERATION: 'question-generation',
 } as const;
 
 export function getAnswerAnalysisPrompt(activeQuestion: string, candidateAnswer: string): string {
@@ -42,4 +43,12 @@ export function getContradictionClarifyPrompt(
     .replace(/\{\{\s*claim\s*\}\}/g, claim)
     .replace(/\{\{\s*resume_evidence\s*\}\}/g, resumeEvidence)
     .replace(/\{\{\s*contradiction_type\s*\}\}/g, contradictionType);
+}
+
+export function getQuestionGenerationPrompt(jdText: string, resumeText: string, roleLevel: string): string {
+  const tpl = loadPrompt(PROMPT_NAMES.QUESTION_GENERATION);
+  return tpl
+    .replace(/\{\{\s*jd_text\s*\}\}/g, jdText)
+    .replace(/\{\{\s*resume_text\s*\}\}/g, resumeText)
+    .replace(/\{\{\s*role_level\s*\}\}/g, roleLevel);
 }
