@@ -35,7 +35,7 @@ export function JobRoleForm({ initialData }: { initialData?: JobFormValues }) {
         <form onSubmit={handleSubmit(onSubmit)} className="glass-card p-6 max-w-2xl mx-auto flex flex-col gap-6">
 
             <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white/80">Job Title</label>
+                <label className="text-sm font-medium text-brand-light-textPrimary dark:text-white/80">Job Title</label>
                 <input
                     {...register('title')}
                     className="input-dark px-4 py-2 rounded-lg"
@@ -46,7 +46,7 @@ export function JobRoleForm({ initialData }: { initialData?: JobFormValues }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-white/80">Department</label>
+                    <label className="text-sm font-medium text-brand-light-textPrimary dark:text-white/80">Department</label>
                     <input
                         {...register('department')}
                         className="input-dark px-4 py-2 rounded-lg"
@@ -56,7 +56,7 @@ export function JobRoleForm({ initialData }: { initialData?: JobFormValues }) {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <label className="text-sm font-medium text-white/80">Location</label>
+                    <label className="text-sm font-medium text-brand-light-textPrimary dark:text-white/80">Location</label>
                     <input
                         {...register('location')}
                         className="input-dark px-4 py-2 rounded-lg"
@@ -67,7 +67,7 @@ export function JobRoleForm({ initialData }: { initialData?: JobFormValues }) {
             </div>
 
             <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white/80">Job Description</label>
+                <label className="text-sm font-medium text-brand-light-textPrimary dark:text-white/80">Job Description</label>
                 <textarea
                     {...register('description')}
                     rows={6}
@@ -77,12 +77,12 @@ export function JobRoleForm({ initialData }: { initialData?: JobFormValues }) {
                 {errors.description && <span className="text-red-400 text-xs">{errors.description.message}</span>}
             </div>
 
-            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-white/10">
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-brand-gray dark:border-white/10">
                 <Button
                     type="button"
                     variant="ghost"
                     onClick={() => router.back()}
-                    className="text-white/60 hover:text-white hover:bg-white/10"
+                    className="text-brand-light-textSecondary dark:text-white/60 hover:text-brand-light-textPrimary dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10"
                 >
                     Cancel
                 </Button>

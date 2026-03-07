@@ -28,8 +28,8 @@ export function ConfirmDialog({
     return (
         <Dialog.Root open={isOpen} onOpenChange={onClose}>
             <Dialog.Portal>
-                <Dialog.Overlay className="fixed inset-0 bg-brand-midnight/80 backdrop-blur-sm z-50 animate-in fade-in" />
-                <Dialog.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-white/10 bg-[#130B35] p-6 shadow-2xl sm:rounded-2xl animate-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:zoom-out-95">
+                <Dialog.Overlay className="fixed inset-0 bg-brand-midnight/60 dark:bg-brand-midnight/80 backdrop-blur-sm z-50 animate-in fade-in" />
+                <Dialog.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-brand-gray dark:border-white/10 bg-white dark:bg-[#130B35] p-6 shadow-2xl sm:rounded-2xl animate-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:zoom-out-95">
                     <div className="flex justify-between items-start">
                         <div className="flex gap-4">
                             {isDestructive && (
@@ -38,21 +38,21 @@ export function ConfirmDialog({
                                 </div>
                             )}
                             <div>
-                                <Dialog.Title className="text-lg font-bold text-white mb-2">{title}</Dialog.Title>
-                                <Dialog.Description className="text-sm text-white/70 leading-relaxed">
+                                <Dialog.Title className="text-lg font-bold text-brand-light-textPrimary dark:text-white mb-2">{title}</Dialog.Title>
+                                <Dialog.Description className="text-sm text-brand-light-textSecondary dark:text-white/70 leading-relaxed">
                                     {description}
                                 </Dialog.Description>
                             </div>
                         </div>
                         <Dialog.Close asChild>
-                            <button className="text-white/40 hover:text-white transition-colors" aria-label="Close">
+                            <button className="text-brand-light-textSecondary dark:text-white/40 hover:text-brand-light-textPrimary dark:hover:text-white transition-colors" aria-label="Close">
                                 <X className="w-5 h-5" />
                             </button>
                         </Dialog.Close>
                     </div>
 
                     <div className="flex justify-end gap-3 mt-4">
-                        <Button variant="ghost" onClick={onClose} className="text-white hover:bg-white/10">
+                        <Button variant="ghost" onClick={onClose} className="text-brand-light-textSecondary dark:text-white hover:bg-black/5 dark:hover:bg-white/10 font-bold">
                             {cancelLabel}
                         </Button>
                         <Button
