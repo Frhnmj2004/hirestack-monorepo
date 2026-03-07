@@ -64,7 +64,7 @@ export function HeroStatCard({ label, value, sub, trend, dark = false, children 
                 background: 'rgba(255,255,255,0.70)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                border: '10px solid rgba(255,255,255,0.45)',
+                border: '10px solid rgba(255,255,255,0.82)',
                 backgroundClip: 'padding-box',
                 boxShadow: '0 8px 32px rgba(90,70,218,0.07)',
             }}
