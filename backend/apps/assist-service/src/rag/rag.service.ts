@@ -3,7 +3,6 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma.service';
-import { Prisma } from '@prisma/client';
 import OpenAI from 'openai';
 import * as crypto from 'crypto';
 import { withRetry } from '../common/retry.util';
@@ -52,16 +51,15 @@ export class RagService {
     k: number = TOP_K,
   ): Promise<Array<{ id: string; textChunk: string; similarity: number }>> {
     const vecStr = `[${queryEmbedding.join(',')}]`;
-    const sql = Prisma.sql`
-      SELECT id, text_chunk, (1 - (embedding <=> ${Prisma.raw(vecStr)}::vector))::float AS similarity
-      FROM resume_chunks
-      WHERE candidate_id = ${candidateId} AND embedding IS NOT NULL
-      ORDER BY embedding <=> ${Prisma.raw(vecStr)}::vector
-      LIMIT ${k}
-    `;
-    const rows = await this.prisma.$queryRaw<
-      Array<{ id: string; text_chunk: string; similarity: number }>
-    >(sql);
+    const rows = (await this.prisma.$queryRawUnsafe(
+      `SELECT id, text_chunk, (1 - (embedding <=> '${vecStr}'::vector))::float AS similarity
+       FROM resume_chunks
+       WHERE candidate_id = $1 AND embedding IS NOT NULL
+       ORDER BY embedding <=> '${vecStr}'::vector
+       LIMIT $2`,
+      candidateId,
+      k,
+    )) as Array<{ id: string; text_chunk: string; similarity: number }>;
     return rows.map((r) => ({ id: r.id, textChunk: r.text_chunk, similarity: Number(r.similarity) }));
   }
 
@@ -86,12 +84,13 @@ export class RagService {
   async storeChunk(candidateId: string, textChunk: string, metadata?: Record<string, unknown>): Promise<string> {
     const embedding = await this.embed(textChunk);
     const vecStr = `[${embedding.join(',')}]`;
-    const metaJson = metadata ? JSON.stringify(metadata) : null;
-    await this.prisma.$executeRaw(
-      Prisma.sql`
-      INSERT INTO resume_chunks (id, candidate_id, text_chunk, embedding, metadata, created_at)
-      VALUES (gen_random_uuid(), ${candidateId}, ${textChunk}, ${Prisma.raw(vecStr)}::vector, ${metaJson}::jsonb, now())
-      `,
+    const metaJson = metadata ? JSON.stringify(metadata) : 'null';
+    await this.prisma.$executeRawUnsafe(
+      `INSERT INTO resume_chunks (id, candidate_id, text_chunk, embedding, metadata, created_at)
+       VALUES (gen_random_uuid(), $1, $2, '${vecStr}'::vector, $3::jsonb, now())`,
+      candidateId,
+      textChunk,
+      metaJson,
     );
     const row = await this.prisma.$queryRaw<Array<{ id: string }>>`
       SELECT id FROM resume_chunks WHERE candidate_id = ${candidateId} ORDER BY created_at DESC LIMIT 1

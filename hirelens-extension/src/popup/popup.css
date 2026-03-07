@@ -1,0 +1,443 @@
+/* Popup — HireLens Interview Copilot */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #0d0d14;
+}
+
+#root {
+  min-height: 100%;
+}
+
+.hl-popup {
+  width: 360px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: #fff;
+}
+
+.hl-popup__glass {
+  background: rgba(16, 16, 24, 0.92);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Header ── */
+.hl-popup__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.hl-popup__brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hl-popup__logo-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #5ac8fa, #007aff);
+  box-shadow: 0 0 8px rgba(0, 122, 255, 0.7);
+}
+
+.hl-popup__title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.hl-popup__subtitle {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 500;
+}
+
+.hl-popup__live-badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #34c759;
+  background: rgba(52, 199, 89, 0.12);
+  border: 1px solid rgba(52, 199, 89, 0.3);
+  padding: 3px 8px;
+  border-radius: 100px;
+}
+
+/* ── Section label ── */
+.hl-popup__section-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0 0 12px 0;
+}
+
+/* ── Error ── */
+.hl-popup__error {
+  font-size: 0.78rem;
+  color: #ff6b6b;
+  background: rgba(255, 69, 58, 0.1);
+  border: 1px solid rgba(255, 69, 58, 0.25);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 0 0 12px 0;
+}
+
+/* ── Loading ── */
+.hl-popup__loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 20px 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.82rem;
+}
+
+.hl-popup__spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #007aff;
+  border-radius: 50%;
+  animation: hl-spin 0.8s linear infinite;
+}
+
+@keyframes hl-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Interview list ── */
+.hl-popup__interview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Interview card ── */
+.hl-popup__interview-card {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.hl-popup__interview-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+
+.hl-popup__card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.hl-popup__card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.hl-popup__card-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hl-popup__card-role {
+  font-size: 0.78rem;
+  color: rgba(0, 122, 255, 0.9);
+  font-weight: 600;
+  margin: 0 0 3px 0;
+}
+
+.hl-popup__card-meta {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0;
+}
+
+.hl-popup__card-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.hl-popup__card-time {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 159, 10, 0.9);
+}
+
+.hl-popup__card-level {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+/* ── Skill tags ── */
+.hl-popup__card-skills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.hl-popup__skill-tag {
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: rgba(0, 122, 255, 0.12);
+  color: rgba(90, 200, 250, 0.9);
+  border: 1px solid rgba(0, 122, 255, 0.18);
+}
+
+/* ── Resume score bar ── */
+.hl-popup__card-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hl-popup__score-text {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.4);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.hl-popup__score-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: visible;
+  position: relative;
+}
+
+.hl-popup__score-bar {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.hl-popup__score-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  margin-left: auto;
+  position: relative;
+  white-space: nowrap;
+}
+
+/* ── Start button ── */
+.hl-popup__start-btn {
+  width: 100%;
+  padding: 10px;
+  background: rgba(0, 122, 255, 0.85);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  letter-spacing: 0.01em;
+}
+
+.hl-popup__start-btn:hover:not(:disabled) {
+  background: rgba(0, 122, 255, 1);
+}
+
+.hl-popup__start-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.hl-popup__start-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── Active session screen ── */
+.hl-popup__active-panel {
+  background: rgba(52, 199, 89, 0.06);
+  border: 1px solid rgba(52, 199, 89, 0.18);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.hl-popup__active-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #34c759;
+  margin: 0 0 4px 0;
+}
+
+.hl-popup__active-candidate {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 6px 0;
+}
+
+.hl-popup__active-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.hl-popup__active-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hl-popup__btn {
+  width: 100%;
+  padding: 11px;
+  background: rgba(0, 122, 255, 0.85);
+  color: #fff;
+  border: none;
+  border-radius: 11px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.hl-popup__btn:hover {
+  background: rgba(0, 122, 255, 1);
+}
+
+.hl-popup__btn--danger {
+  background: rgba(255, 69, 58, 0.12);
+  border: 1px solid rgba(255, 69, 58, 0.25);
+  color: #ff6b6b;
+}
+
+.hl-popup__btn--danger:hover {
+  background: rgba(255, 69, 58, 0.2);
+}
+
+/* ── Active session role ── */
+.hl-popup__active-role {
+  font-size: 0.78rem;
+  color: rgba(0, 122, 255, 0.8);
+  font-weight: 500;
+  margin: 0 0 6px 0;
+}
+
+/* ── Landing / no-session screen ── */
+.hl-popup__glass--center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+}
+
+.hl-popup__landing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 0 16px;
+  gap: 10px;
+}
+
+.hl-popup__landing-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: rgba(0, 122, 255, 0.08);
+  border: 1px solid rgba(0, 122, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hl-popup__landing-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.hl-popup__landing-sub {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.hl-popup__open-meet-btn {
+  margin-top: 4px;
+  padding: 10px 22px;
+  background: rgba(0, 122, 255, 0.85);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.hl-popup__open-meet-btn:hover {
+  background: rgba(0, 122, 255, 1);
+  transform: translateY(-1px);
+}
+
+/* ── Auth badge ── */
+.hl-popup__auth-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.hl-popup__auth-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34c759;
+  box-shadow: 0 0 4px rgba(52, 199, 89, 0.6);
+  flex-shrink: 0;
+}
