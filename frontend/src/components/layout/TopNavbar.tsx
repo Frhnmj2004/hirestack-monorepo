@@ -13,7 +13,7 @@ export function Topbar() {
 
     return (
         <header
-            className="fixed top-3 right-3 z-30 transition-all duration-300 ease-in-out h-[56px]"
+            className="fixed top-3 right-3 z-30 transition-all duration-300 ease-in-out h-[72px]"
             style={{
                 left: isSidebarCollapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED,
                 /* Glassmorphism */
