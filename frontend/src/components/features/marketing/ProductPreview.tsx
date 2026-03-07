@@ -1,57 +1,41 @@
+import ScrollReveal from '@/components/ui/scroll-reveal';
+import dashboardImg from '@/assets/dashboard.png';
+
 export function ProductPreview() {
     return (
-        <section id="product-preview" className="py-20 overflow-hidden">
+        <section id="product-preview" className="pt-8 pb-24 overflow-hidden">
             <div className="container mx-auto px-4 sm:px-8">
-                <div className="text-center max-w-2xl mx-auto mb-16">
-                    <h2 className="text-3xl lg:text-4xl font-bold text-brand-light-textPrimary mb-4">
-                        See the platform in action
+                <div className="text-center max-w-3xl mx-auto mb-16">
+                    <h2 className="text-5xl lg:text-7xl font-dm font-light text-brand-light-textPrimary mb-6 leading-tight">
+                        See the platform{' '}
+                        <span className="text-brand-violet italic font-instrument font-light text-[0.85em]">in action</span>
                     </h2>
-                    <p className="text-lg text-brand-light-textSecondary">
-                        A clean, intuitive dashboard surface that gives you complete control over your hiring pipeline.
-                    </p>
+                    <ScrollReveal
+                        baseOpacity={0.1}
+                        enableBlur
+                        baseRotation={2}
+                        blurStrength={4}
+                        splitBy="words"
+                        wordAnimationEnd="bottom center"
+                        containerClassName="text-brand-light-textSecondary leading-relaxed text-center text-balance mx-auto"
+                        textClassName="!text-xl md:!text-2xl lg:!text-3xl !font-normal font-sans"
+                    >
+                        {`A clean, intuitive dashboard surface that gives you complete control over your hiring pipeline.`}
+                    </ScrollReveal>
                 </div>
 
-                <div className="relative mx-auto max-w-5xl">
+                <div className="relative mx-auto w-full max-w-[95vw] lg:max-w-[1400px]">
                     {/* Decorative glow behind dashboard */}
                     <div className="absolute top-1/2 left-1/2 -z-10 h-[60%] w-[80%] -translate-x-1/2 -translate-y-1/2 rounded-[100%] bg-brand-violet/20 blur-[100px]"></div>
 
-                    {/* Fake Dashboard UI */}
-                    <div className="rounded-2xl border border-border bg-white shadow-2xl overflow-hidden">
-                        {/* Fake Browser window header */}
-                        <div className="flex items-center gap-2 border-b border-border bg-brand-light-bg px-4 py-3">
-                            <div className="flex gap-1.5">
-                                <div className="h-3 w-3 rounded-full bg-red-400"></div>
-                                <div className="h-3 w-3 rounded-full bg-amber-400"></div>
-                                <div className="h-3 w-3 rounded-full bg-emerald-400"></div>
-                            </div>
-                            <div className="mx-auto flex h-6 w-64 items-center justify-center rounded-md bg-white text-[10px] text-brand-light-textSecondary shadow-sm">
-                                hirelens.app/dashboard
-                            </div>
-                        </div>
-
-                        {/* Real fake UI body */}
-                        <div className="flex h-[400px] sm:h-[600px] w-full bg-brand-midnight text-white">
-                            {/* Fake Sidebar */}
-                            <div className="hidden sm:flex w-64 flex-col border-r border-white/10 p-4">
-                                <div className="mb-8 font-bold text-lg">HireLens</div>
-                                <div className="space-y-2">
-                                    <div className="rounded-lg bg-brand-violet/20 p-2 text-sm text-brand-lavender border border-brand-violet/30">📊 Dashboard</div>
-                                    <div className="rounded-lg p-2 text-sm text-white/50">💼 Job Roles</div>
-                                    <div className="rounded-lg p-2 text-sm text-white/50">📄 Resumes</div>
-                                    <div className="rounded-lg p-2 text-sm text-white/50">👥 Candidates</div>
-                                </div>
-                            </div>
-                            {/* Fake Main Content */}
-                            <div className="flex-1 p-8">
-                                <div className="mb-8 h-8 w-48 rounded bg-white/10"></div>
-                                <div className="grid grid-cols-3 gap-4 mb-8">
-                                    <div className="h-24 rounded-xl bg-white/5 border border-white/10"></div>
-                                    <div className="h-24 rounded-xl bg-white/5 border border-white/10"></div>
-                                    <div className="h-24 rounded-xl bg-white/5 border border-white/10"></div>
-                                </div>
-                                <div className="h-64 rounded-xl bg-white/5 border border-white/10"></div>
-                            </div>
-                        </div>
+                    {/* Dashboard Image */}
+                    <div className="rounded-xl lg:rounded-2xl border border-border shadow-2xl shadow-brand-violet/10 overflow-hidden bg-brand-light-bg mx-auto">
+                        <img
+                            src={dashboardImg.src}
+                            alt="HireLens Dashboard Interface"
+                            className="w-full h-auto object-cover"
+                            loading="lazy"
+                        />
                     </div>
                 </div>
             </div>
