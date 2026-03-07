@@ -20,6 +20,8 @@ export function HeroStatCard({ label, value, sub, trend, dark = false, children 
                 style={{
                     background: 'linear-gradient(135deg, #5A46DA 0%, #7B6CFF 60%, #9B8CFF 100%)',
                     boxShadow: '0 12px 40px rgba(90,70,218,0.35)',
+                    border: '10px solid rgba(155, 140, 255, 0.45)',
+                    backgroundClip: 'padding-box',
                 }}
             >
                 {/* background orb */}
