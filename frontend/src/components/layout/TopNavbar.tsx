@@ -4,99 +4,120 @@ import { Bell, Search, User } from 'lucide-react';
 import { useUiStore } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
 
+// Must match layout.tsx constants
+const SIDEBAR_EXPANDED = 256 + 12 + 12; // 280px
+const SIDEBAR_COLLAPSED = 76 + 12 + 12; // 100px
+
 export function Topbar() {
     const { isSidebarCollapsed } = useUiStore();
 
     return (
         <header
-            className={cn(
-                "fixed top-0 right-0 z-30 transition-all duration-300 h-16",
-                "flex items-center justify-between px-6",
-                isSidebarCollapsed ? "left-[76px]" : "left-[256px]"
-            )}
+            className="fixed top-3 right-3 z-30 transition-all duration-300 ease-in-out h-[72px]"
             style={{
-                background: 'rgba(247, 248, 252, 0.85)',
+                left: isSidebarCollapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED,
+                /* Glassmorphism */
+                background: 'rgba(255, 255, 255, 0.72)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                borderBottom: '1px solid rgba(230, 230, 240, 0.8)',
-                boxShadow: '0 1px 0 rgba(230, 230, 240, 0.5), 0 2px 12px rgba(90, 70, 218, 0.04)',
+                border: '10px solid rgba(255, 255, 255, 0.45)',
+                backgroundClip: 'padding-box',
+                boxShadow:
+                    '0 8px 32px rgba(90, 70, 218, 0.08), 0 2px 8px rgba(0,0,0,0.04)',
+                borderRadius: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0 20px',
             }}
         >
-            {/* Greeting + Search */}
-            <div className="flex items-center gap-6 flex-1">
-                <div className="hidden md:block">
-                    <h2 className="text-sm font-semibold text-brand-light-textPrimary leading-none">
+            {/* Left — Greeting + Search */}
+            <div className="flex items-center gap-5 flex-1 min-w-0">
+                <div className="hidden lg:block shrink-0">
+                    <p className="text-sm font-semibold text-brand-light-textPrimary leading-none">
                         Good morning 👋
                     </h2>
                     <p className="text-xs text-brand-light-textSecondary mt-0.5">
-                        Here&apos;s what&apos;s happening today
+                        Here's what's happening today
                     </p>
                 </div>
 
-                <div className="relative w-full max-w-xs">
-                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-brand-light-textSecondary/60" />
+                {/* Search bar */}
+                <div className="relative max-w-xs w-full">
+                    <Search
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-brand-light-textSecondary/60"
+                        style={{ width: 14, height: 14 }}
+                    />
                     <input
                         type="text"
                         placeholder="Search candidates, roles..."
-                        className="w-full text-sm py-2 pl-9 pr-4 rounded-xl outline-none transition-all duration-200"
+                        className={cn(
+                            'w-full text-sm leading-none py-2 pl-9 pr-4 outline-none transition-all duration-200',
+                            'text-brand-light-textPrimary placeholder:text-brand-light-textSecondary/60'
+                        )}
                         style={{
-                            background: 'rgba(255, 255, 255, 0.8)',
+                            background: 'rgba(247, 248, 252, 0.9)',
                             border: '1px solid rgba(230, 230, 240, 0.9)',
-                            color: '#1A1A2E',
+                            borderRadius: '12px',
                         }}
                         onFocus={(e) => {
-                            e.currentTarget.style.border = '1px solid rgba(90, 70, 218, 0.4)';
-                            e.currentTarget.style.boxShadow = '0 0 0 3px rgba(90, 70, 218, 0.08)';
+                            e.currentTarget.style.border =
+                                '1px solid rgba(90, 70, 218, 0.4)';
+                            e.currentTarget.style.boxShadow =
+                                '0 0 0 3px rgba(90, 70, 218, 0.08)';
                         }}
                         onBlur={(e) => {
-                            e.currentTarget.style.border = '1px solid rgba(230, 230, 240, 0.9)';
+                            e.currentTarget.style.border =
+                                '1px solid rgba(230, 230, 240, 0.9)';
                             e.currentTarget.style.boxShadow = 'none';
                         }}
                     />
                 </div>
             </div>
 
-            {/* Right Actions */}
-            <div className="flex items-center gap-2 ml-4">
-                {/* Notification Bell */}
+            {/* Right — Actions */}
+            <div className="flex items-center gap-2 ml-4 shrink-0">
+                {/* Notification */}
                 <button
-                    className="relative p-2.5 rounded-xl transition-all duration-200 group"
-                    style={{ background: 'transparent' }}
-                    onMouseEnter={e => {
-                        (e.currentTarget as HTMLButtonElement).style.background = 'rgba(90, 70, 218, 0.06)';
-                    }}
-                    onMouseLeave={e => {
-                        (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-                    }}
+                    className="relative p-2 rounded-xl transition-all duration-200 hover:bg-brand-violet/6"
+                    style={{ color: '#6B6B8D' }}
                 >
-                    <Bell className="w-4.5 h-4.5 text-brand-light-textSecondary group-hover:text-brand-light-textPrimary transition-colors" style={{ width: '18px', height: '18px' }} />
-                    {/* Notification badge */}
+                    <Bell style={{ width: 18, height: 18 }} />
                     <span
-                        className="absolute top-2 right-2 w-2 h-2 rounded-full"
+                        className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
                         style={{
-                            background: 'linear-gradient(135deg, #5A46DA, #9B8CFF)',
-                            boxShadow: '0 0 0 2px rgba(247, 248, 252, 0.9)',
+                            background:
+                                'linear-gradient(135deg, #5A46DA, #9B8CFF)',
+                            boxShadow: '0 0 0 2px rgba(255,255,255,0.9)',
                         }}
                     />
                 </button>
 
                 {/* Divider */}
-                <div className="w-px h-6 mx-1" style={{ background: 'rgba(230, 230, 240, 0.9)' }} />
+                <div
+                    className="w-px h-5 mx-1"
+                    style={{ background: 'rgba(230, 230, 240, 0.9)' }}
+                />
 
-                {/* User Avatar */}
-                <button className="flex items-center gap-2.5 pl-1 pr-2 py-1.5 rounded-xl transition-all duration-200 hover:bg-brand-violet/6">
+                {/* Avatar */}
+                <button className="flex items-center gap-2.5 pl-1 pr-2 py-1 rounded-xl transition-all duration-200 hover:bg-brand-violet/6">
                     <div
-                        className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0"
+                        className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
                         style={{
-                            background: 'linear-gradient(135deg, rgba(90,70,218,0.15), rgba(155,140,255,0.1))',
-                            border: '1px solid rgba(90, 70, 218, 0.2)',
+                            background:
+                                'linear-gradient(135deg, #5A46DA 0%, #7B6CFF 100%)',
+                            boxShadow: '0 3px 10px rgba(90,70,218,0.35)',
                         }}
                     >
-                        <User className="w-4 h-4 text-brand-violet" />
+                        <User className="w-4 h-4 text-white" />
                     </div>
-                    <div className="hidden sm:block text-left">
-                        <p className="text-xs font-semibold text-brand-light-textPrimary leading-none">Recruiter</p>
-                        <p className="text-[10px] text-brand-light-textSecondary mt-0.5">Admin</p>
+                    <div className="hidden sm:block text-left leading-none">
+                        <p className="text-xs font-semibold text-brand-light-textPrimary">
+                            Recruiter
+                        </p>
+                        <p className="text-[10px] text-brand-light-textSecondary mt-0.5">
+                            Admin
+                        </p>
                     </div>
                 </button>
             </div>

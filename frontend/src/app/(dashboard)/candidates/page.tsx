@@ -53,15 +53,21 @@ export default function CandidatesPage() {
 
     const renderCandidateCard = (candidate: Candidate) => (
         <Link href={`${ROUTES.CANDIDATES}/${candidate.id}`}>
-            <div className="bg-brand-midnight/60 border border-white/5 p-4 rounded-lg hover:border-brand-violet/50 hover:shadow-glow-sm transition-all group">
-                <h4 className="font-semibold text-white group-hover:text-brand-lavender transition-colors">{candidate.name}</h4>
-                <p className="text-xs text-white/50 mb-3">{candidate.role}</p>
+            <div
+                className="group flex flex-col p-4 rounded-2xl transition-all duration-200 hover:-translate-y-1"
+                style={{
+                    background: '#ffffff',
+                    boxShadow: '0 4px 16px rgba(90,70,218,0.06)',
+                }}
+            >
+                <h4 className="font-bold text-brand-light-textPrimary group-hover:text-brand-violet transition-colors">{candidate.name}</h4>
+                <p className="text-xs text-brand-light-textSecondary mt-0.5 mb-4">{candidate.role}</p>
 
-                <div className="flex justify-between items-center border-t border-white/5 pt-3">
-                    <span className="text-xs text-white/40">Match Score</span>
+                <div className="flex justify-between items-center border-t pt-3" style={{ borderColor: 'rgba(230,230,240,0.8)' }}>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-brand-light-textSecondary/70">Match Score</span>
                     <div className="flex items-center gap-1">
-                        <Star className={cn("w-3.5 h-3.5", candidate.matchScore >= 90 ? "text-emerald-400 fill-emerald-400" : "text-amber-400 fill-amber-400")} />
-                        <span className="text-sm font-bold text-white">{candidate.matchScore}</span>
+                        <Star className={cn("w-3.5 h-3.5", candidate.matchScore >= 90 ? "text-emerald-500 fill-emerald-500" : "text-amber-500 fill-amber-500")} />
+                        <span className="text-sm font-bold text-brand-light-textPrimary">{candidate.matchScore}</span>
                     </div>
                 </div>
             </div>

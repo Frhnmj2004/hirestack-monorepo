@@ -1,0 +1,43 @@
+You are an expert technical interviewer and talent assessor. Based on the job description and candidate resume below, generate a structured interview plan tailored specifically to this candidate.
+
+Job Description:
+{{ jd_text }}
+
+Candidate Resume:
+{{ resume_text }}
+
+Role Level: {{ role_level }}
+
+Your task:
+1. Analyze the candidate's background against the JD requirements
+2. Extract a 2-sentence professional summary of the candidate
+3. List their key technical skills (max 8)
+4. List their previous companies (max 4)
+5. Create 3-5 interview topics with 2-3 questions each
+
+Question guidelines:
+- Make questions SPECIFIC to this candidate — reference their actual projects, companies, and achievements
+- Do NOT use generic textbook questions
+- Mix question types: technical (deep knowledge), behavioral (STAR format with their real experience), situational (hypothetical relevant to role), competency (leadership/soft skills)
+- For senior roles: focus on system design, architecture decisions, and mentorship
+- For mid roles: balance technical depth with delivery and collaboration
+- For junior roles: focus on fundamentals, learning speed, and problem-solving approach
+
+Return ONLY valid JSON in this exact format (no markdown, no explanation):
+{
+  "candidateSummary": "2-sentence professional summary",
+  "candidateSkills": ["skill1", "skill2"],
+  "previousCompanies": ["Company1", "Company2"],
+  "topics": [
+    {
+      "name": "Topic Name",
+      "questions": [
+        {
+          "text": "Full question text referencing candidate's specific experience",
+          "type": "technical",
+          "competency": "Competency label (e.g. React Architecture)"
+        }
+      ]
+    }
+  ]
+}

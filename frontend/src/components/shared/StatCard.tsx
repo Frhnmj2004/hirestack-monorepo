@@ -22,6 +22,7 @@ const variantConfig = {
     violet: {
         gradient: 'linear-gradient(135deg, rgba(90,70,218,0.12) 0%, rgba(155,140,255,0.06) 100%)',
         border: 'rgba(90, 70, 218, 0.2)',
+        thickBorder: 'rgba(90, 70, 218, 0.18)',
         iconBg: 'rgba(90, 70, 218, 0.12)',
         iconColor: '#5A46DA',
         shadow: '0 4px 20px rgba(90, 70, 218, 0.1)',
@@ -30,6 +31,7 @@ const variantConfig = {
     rose: {
         gradient: 'linear-gradient(135deg, rgba(244,63,94,0.10) 0%, rgba(251,113,133,0.06) 100%)',
         border: 'rgba(244, 63, 94, 0.18)',
+        thickBorder: 'rgba(244, 63, 94, 0.18)',
         iconBg: 'rgba(244, 63, 94, 0.1)',
         iconColor: '#f43f5e',
         shadow: '0 4px 20px rgba(244, 63, 94, 0.1)',
@@ -38,6 +40,7 @@ const variantConfig = {
     sky: {
         gradient: 'linear-gradient(135deg, rgba(14,165,233,0.10) 0%, rgba(56,189,248,0.06) 100%)',
         border: 'rgba(14, 165, 233, 0.18)',
+        thickBorder: 'rgba(14, 165, 233, 0.18)',
         iconBg: 'rgba(14, 165, 233, 0.1)',
         iconColor: '#0ea5e9',
         shadow: '0 4px 20px rgba(14, 165, 233, 0.1)',
@@ -46,6 +49,7 @@ const variantConfig = {
     emerald: {
         gradient: 'linear-gradient(135deg, rgba(16,185,129,0.10) 0%, rgba(52,211,153,0.06) 100%)',
         border: 'rgba(16, 185, 129, 0.18)',
+        thickBorder: 'rgba(16, 185, 129, 0.18)',
         iconBg: 'rgba(16, 185, 129, 0.1)',
         iconColor: '#10b981',
         shadow: '0 4px 20px rgba(16, 185, 129, 0.1)',
@@ -54,6 +58,7 @@ const variantConfig = {
     amber: {
         gradient: 'linear-gradient(135deg, rgba(245,158,11,0.10) 0%, rgba(251,191,36,0.06) 100%)',
         border: 'rgba(245, 158, 11, 0.18)',
+        thickBorder: 'rgba(245, 158, 11, 0.18)',
         iconBg: 'rgba(245, 158, 11, 0.1)',
         iconColor: '#f59e0b',
         shadow: '0 4px 20px rgba(245, 158, 11, 0.1)',
@@ -74,7 +79,8 @@ export function StatCard({ title, value, icon, trend, subtitle, variant = 'viole
                 background: v.gradient,
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                border: `1px solid ${v.border}`,
+                border: `10px solid ${v.thickBorder}`,
+                backgroundClip: 'padding-box',
                 boxShadow: v.shadow,
             }}
             onMouseEnter={e => {

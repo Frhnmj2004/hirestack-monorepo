@@ -41,14 +41,14 @@ export function DataTable<T>({
         <div className="flex flex-col gap-4">
             {/* Table Actions (Search) */}
             {onSearch && (
-                <div className="flex justify-between items-center bg-black/5 dark:bg-brand-midnight/40 p-4 rounded-t-xl border border-brand-gray dark:border-white/5 border-b-0">
+                <div className="flex justify-between items-center bg-white/40 dark:bg-brand-midnight/40 p-4 rounded-t-xl border border-white/60 dark:border-white/10 border-b-0 backdrop-blur-md">
                     <div className="relative w-72">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-light-textSecondary dark:text-white/40" />
                         <input
                             type="text"
                             placeholder={searchPlaceholder || "Search..."}
                             onChange={(e) => onSearch(e.target.value)}
-                            className="w-full bg-white dark:bg-white/5 border border-brand-gray dark:border-white/10 rounded-lg py-2 pl-10 pr-4 text-sm text-brand-light-textPrimary dark:text-white placeholder:text-brand-light-textSecondary dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-brand-violet/50"
+                            className="w-full bg-white/70 dark:bg-white/5 border border-white/60 dark:border-white/10 rounded-lg py-2 pl-10 pr-4 text-sm text-brand-light-textPrimary dark:text-white placeholder:text-brand-light-textSecondary dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-brand-violet/50 backdrop-blur-sm"
                         />
                     </div>
                 </div>
@@ -57,7 +57,7 @@ export function DataTable<T>({
             {/* Table Body */}
             <div className="w-full overflow-x-auto glass-card rounded-t-none">
                 <table className="w-full text-left text-sm text-brand-light-textSecondary dark:text-white/70">
-                    <thead className="bg-black/5 dark:bg-white/5 text-brand-light-textPrimary dark:text-white/90 border-b border-brand-gray dark:border-white/10 uppercase text-xs tracking-wider">
+                    <thead className="bg-white/40 dark:bg-white/5 text-brand-light-textPrimary dark:text-white/90 border-b border-white/60 dark:border-white/10 uppercase text-xs tracking-wider">
                         <tr>
                             {columns.map((col, idx) => (
                                 <th key={idx} className={cn("px-6 py-4 font-medium", col.className)}>
@@ -66,7 +66,7 @@ export function DataTable<T>({
                             ))}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-brand-gray dark:divide-white/5">
+                    <tbody className="divide-y divide-white/60 dark:divide-white/10">
                         {data.length === 0 ? (
                             <tr>
                                 <td colSpan={columns.length} className="px-6 py-12 text-center text-brand-light-textSecondary/40 dark:text-white/40">

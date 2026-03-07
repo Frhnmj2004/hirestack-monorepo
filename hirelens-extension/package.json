@@ -1,0 +1,25 @@
+{
+  "name": "hirelens-extension",
+  "version": "1.0.0",
+  "description": "HireLens Interview Copilot — AI-powered interview assistant for Google Meet",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "npx tsc --noEmit && vite build && vite build --config vite.content.config.ts",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
+  }
+}
