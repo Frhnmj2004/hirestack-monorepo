@@ -25,7 +25,7 @@ export default function ReportsIndexPage() {
             </div>
 
             <div>
-                <h3 className="text-xl font-bold text-brand-light-textPrimary dark:text-white mb-6">Job Specific Reports</h3>
+                <h3 className="text-lg font-bold text-brand-light-textPrimary mb-6">Job Specific Reports</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {MOCK_JOBS.map((job) => (
                         <div key={job.id} className="relative group">
