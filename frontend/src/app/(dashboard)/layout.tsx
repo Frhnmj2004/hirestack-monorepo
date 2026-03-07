@@ -3,7 +3,7 @@
 import { useUiStore } from '@/store/uiStore';
 import { cn } from '@/lib/utils';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { Topbar } from '@/components/layout/Topbar';
+import { Topbar } from '@/components/layout/TopNavbar';
 
 export default function DashboardLayout({
     children,
