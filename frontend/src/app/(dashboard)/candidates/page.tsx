@@ -56,10 +56,7 @@ export default function CandidatesPage() {
             <div
                 className="group flex flex-col p-4 rounded-2xl transition-all duration-200 hover:-translate-y-1"
                 style={{
-                    background: 'rgba(255,255,255,0.70)',
-                    backdropFilter: 'blur(20px)',
-                    WebkitBackdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(255,255,255,0.70)',
+                    background: '#ffffff',
                     boxShadow: '0 4px 16px rgba(90,70,218,0.06)',
                 }}
             >

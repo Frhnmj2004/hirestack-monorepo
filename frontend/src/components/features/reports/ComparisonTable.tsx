@@ -16,11 +16,11 @@ export function ComparisonTable({ candidates }: { candidates: CandidateCompariso
     const sorted = [...candidates].sort((a, b) => b.matchScore - a.matchScore);
 
     return (
-        <div className="w-full overflow-x-auto rounded-xl border border-white/10">
+        <div className="w-full overflow-x-auto glass-card border-white/60 dark:border-white/10 p-0">
             <table className="w-full text-left text-sm text-white">
                 <thead className="bg-brand-indigo uppercase tracking-wider text-xs font-semibold text-white/70">
                     <tr>
-                        <th className="px-6 py-4 rounded-tl-xl border-b border-white/10">Candidate</th>
+                        <th className="px-6 py-4 rounded-tl-[24px] border-b border-white/10">Candidate</th>
                         <th className="px-6 py-4 border-b border-white/10 text-center">Match Score</th>
                         <th className="px-6 py-4 border-b border-white/10 text-center">Technical Fit</th>
                         <th className="px-6 py-4 border-b border-white/10 text-center">Cultural Fit</th>

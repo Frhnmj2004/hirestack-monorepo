@@ -77,7 +77,7 @@ export function JobRoleForm({ initialData }: { initialData?: JobFormValues }) {
                 {errors.description && <span className="text-red-400 text-xs">{errors.description.message}</span>}
             </div>
 
-            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-brand-gray dark:border-white/10">
+            <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-white/60 dark:border-white/10">
                 <Button
                     type="button"
                     variant="ghost"

@@ -24,7 +24,8 @@ export function InterviewCard({ interview }: { interview: Interview }) {
                 background: 'rgba(255,255,255,0.70)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255,255,255,0.55)',
+                border: '10px solid rgba(255,255,255,0.45)',
+                backgroundClip: 'padding-box',
                 boxShadow: '0 8px 32px rgba(90,70,218,0.07)',
             }}
         >
