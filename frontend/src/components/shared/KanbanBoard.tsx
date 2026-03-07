@@ -29,17 +29,17 @@ export function KanbanBoard<T extends { id: string }>({ columns, renderCard }: K
                 >
                     {/* Column Header */}
                     <div className="flex items-center justify-between mb-4 px-1">
-                        <h3 className="font-semibold text-white/90 uppercase tracking-wider text-sm">{col.title}</h3>
-                        <span className="bg-white/10 text-white/70 px-2 py-0.5 rounded-full text-xs font-medium">
+                        <h3 className="font-semibold text-brand-light-textPrimary dark:text-white/90 uppercase tracking-wider text-sm">{col.title}</h3>
+                        <span className="bg-black/5 dark:bg-white/10 text-brand-light-textSecondary dark:text-white/70 px-2 py-0.5 rounded-full text-xs font-medium">
                             {col.items.length}
                         </span>
                     </div>
 
                     {/* Column Body Container */}
-                    <div className="flex-1 rounded-xl bg-black/20 border border-white/5 p-3 flex flex-col gap-3 overflow-y-auto">
+                    <div className="flex-1 rounded-xl bg-black/5 dark:bg-black/20 border border-brand-gray dark:border-white/5 p-3 flex flex-col gap-3 overflow-y-auto">
                         {col.items.length === 0 ? (
-                            <div className="h-full flex items-center justify-center p-4 border-2 border-dashed border-white/5 rounded-lg">
-                                <span className="text-sm text-white/30 text-center">Drop candidates here</span>
+                            <div className="h-full flex items-center justify-center p-4 border-2 border-dashed border-brand-gray dark:border-white/5 rounded-lg">
+                                <span className="text-sm text-brand-light-textSecondary/40 dark:text-white/30 text-center">Drop candidates here</span>
                             </div>
                         ) : (
                             col.items.map((item) => (

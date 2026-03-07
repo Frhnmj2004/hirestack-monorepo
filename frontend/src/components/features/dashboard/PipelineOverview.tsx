@@ -11,8 +11,8 @@ export function PipelineOverview() {
     return (
         <div className="glass-card p-6 flex flex-col min-h-[400px]">
             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-semibold text-lg text-white">Pipeline Conversion</h3>
-                <span className="text-sm text-white/50">Last 30 Days</span>
+                <h3 className="font-semibold text-lg text-brand-light-textPrimary dark:text-white">Pipeline Conversion</h3>
+                <span className="text-sm text-brand-light-textSecondary dark:text-white/50">Last 30 Days</span>
             </div>
 
             <div className="flex-1 flex flex-col justify-center space-y-4">
@@ -23,10 +23,10 @@ export function PipelineOverview() {
                     return (
                         <div key={step.stage} className="relative w-full group">
                             <div className="flex items-center justify-between mb-1.5 px-1">
-                                <span className="text-sm font-medium text-white/80">{step.stage}</span>
-                                <span className="text-sm font-bold text-white">{step.count.toLocaleString()}</span>
+                                <span className="text-sm font-medium text-brand-light-textPrimary dark:text-white/80">{step.stage}</span>
+                                <span className="text-sm font-bold text-brand-light-textPrimary dark:text-white">{step.count.toLocaleString()}</span>
                             </div>
-                            <div className="h-4 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-4 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
                                 <div
                                     className={`h-full ${step.color} transition-all duration-1000 ease-out`}
                                     style={{ width: `${displayWidth}%` }}

@@ -18,7 +18,7 @@ export default function InterviewsPage() {
                 title="AI Interviews"
                 description="Review completed AI interviews, read transcripts, and view candidate scores."
             >
-                <Button className="bg-white/5 border border-white/10 hover:bg-white/10 text-white">
+                <Button className="bg-brand-violet hover:bg-brand-violet/80 text-white shadow-glow-sm">
                     <Video className="w-4 h-4 mr-2" />
                     Schedule Interview
                 </Button>
