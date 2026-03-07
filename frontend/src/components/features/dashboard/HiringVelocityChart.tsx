@@ -54,7 +54,7 @@ const CustomTooltip = ({ active, payload, label }: {
 export function HiringVelocityChart() {
     return (
         <div
-            className="p-6 rounded-2xl flex flex-col"
+            className="p-6 rounded-2xl flex flex-col h-full"
             style={{
                 background: 'var(--glass-bg)',
                 backdropFilter: 'var(--glass-blur)',
@@ -92,7 +92,7 @@ export function HiringVelocityChart() {
             </div>
 
             {/* Chart */}
-            <div className="h-[220px]">
+            <div className="flex-1 min-h-[220px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                         <defs>
