@@ -45,7 +45,6 @@ export function KanbanBoard<T extends { id: string }>({ columns, renderCard }: K
                             background: 'rgba(255,255,255,0.40)',
                             backdropFilter: 'blur(20px)',
                             WebkitBackdropFilter: 'blur(20px)',
-                            border: '1px solid rgba(255,255,255,0.70)',
                             boxShadow: 'inset 0 4px 20px rgba(90,70,218,0.03)',
                         }}
                     >

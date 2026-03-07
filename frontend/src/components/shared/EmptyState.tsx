@@ -14,7 +14,7 @@ interface EmptyStateProps {
 export function EmptyState({ icon: Icon, title, description, actionLabel, onAction, className }: EmptyStateProps) {
     return (
         <div className={cn("flex flex-col items-center justify-center text-center p-12 w-full h-full min-h-[400px] glass-card", className)}>
-            <div className="w-16 h-16 rounded-2xl bg-black/5 dark:bg-white/5 border border-brand-gray dark:border-white/10 flex items-center justify-center mb-6 text-brand-light-textSecondary/40 dark:text-white/40 shadow-glow-sm">
+            <div className="w-16 h-16 rounded-2xl bg-white/40 dark:bg-white/5 border border-white/60 dark:border-white/10 flex items-center justify-center mb-6 text-brand-light-textSecondary/40 dark:text-white/40 shadow-glow-sm backdrop-blur-sm">
                 <Icon className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-bold text-brand-light-textPrimary dark:text-white mb-2">{title}</h3>

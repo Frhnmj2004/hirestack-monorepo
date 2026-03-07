@@ -37,7 +37,7 @@
 
     /* Glassmorphism variables */
     --glass-bg: rgba(255, 255, 255, 0.65);
-    --glass-border: rgba(255, 255, 255, 0.5);
+    --glass-border: rgba(255, 255, 255, 0.45);
     --glass-shadow: 0 8px 32px rgba(90, 70, 218, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
     --glass-blur: blur(20px);
 
@@ -117,14 +117,14 @@
      GLASSMORPHISM SYSTEM
   ═══════════════════════════════════════ */
 
-  /* Primary glass card — white frost */
   .glass-card {
     background: var(--glass-bg);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--glass-border);
+    border: 10px solid var(--glass-border);
+    background-clip: padding-box;
     box-shadow: var(--glass-shadow);
-    @apply rounded-2xl;
+    @apply rounded-[28px];
   }
 
   /* Elevated glow card — hover effect */

@@ -29,7 +29,7 @@ export function ConfirmDialog({
         <Dialog.Root open={isOpen} onOpenChange={onClose}>
             <Dialog.Portal>
                 <Dialog.Overlay className="fixed inset-0 bg-brand-midnight/60 dark:bg-brand-midnight/80 backdrop-blur-sm z-50 animate-in fade-in" />
-                <Dialog.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-brand-gray dark:border-white/10 bg-white dark:bg-[#130B35] p-6 shadow-2xl sm:rounded-2xl animate-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:zoom-out-95">
+                <Dialog.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 glass-card p-6 shadow-2xl sm:rounded-[24px] animate-in zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:zoom-out-95">
                     <div className="flex justify-between items-start">
                         <div className="flex gap-4">
                             {isDestructive && (

@@ -20,7 +20,8 @@ export function Topbar() {
                 background: 'rgba(255, 255, 255, 0.72)',
                 backdropFilter: 'blur(20px)',
                 WebkitBackdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255, 255, 255, 0.55)',
+                border: '10px solid rgba(255, 255, 255, 0.45)',
+                backgroundClip: 'padding-box',
                 boxShadow:
                     '0 8px 32px rgba(90, 70, 218, 0.08), 0 2px 8px rgba(0,0,0,0.04)',
                 borderRadius: '16px',

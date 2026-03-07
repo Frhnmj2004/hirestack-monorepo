@@ -24,7 +24,7 @@ export function TranscriptViewer({ messages }: { messages: Message[] }) {
                         "w-10 h-10 rounded-full flex shrink-0 items-center justify-center border",
                         msg.sender === 'ai'
                             ? "bg-brand-violet/20 border-brand-violet/30 shadow-glow-sm text-brand-violet dark:text-brand-lavender"
-                            : "bg-black/5 dark:bg-white/10 border-brand-gray dark:border-white/20 text-brand-light-textSecondary dark:text-white/70"
+                            : "bg-white/40 dark:bg-white/10 border-white/60 dark:border-white/20 text-brand-light-textSecondary dark:text-white/70 backdrop-blur-sm"
                     )}>
                         {msg.sender === 'ai' ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
                     </div>
@@ -43,7 +43,7 @@ export function TranscriptViewer({ messages }: { messages: Message[] }) {
                         <div className={cn(
                             "px-5 py-3 rounded-2xl text-[15px] leading-relaxed",
                             msg.sender === 'ai'
-                                ? "bg-black/5 dark:bg-brand-midnight border border-brand-gray dark:border-white/10 text-brand-light-textPrimary dark:text-white rounded-tl-sm"
+                                ? "bg-white/40 dark:bg-brand-midnight border border-white/60 dark:border-white/10 text-brand-light-textPrimary dark:text-white rounded-tl-sm backdrop-blur-sm"
                                 : "bg-brand-violet text-white rounded-tr-sm"
                         )}>
                             {msg.text}
