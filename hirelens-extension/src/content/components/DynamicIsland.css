@@ -268,3 +268,125 @@
   opacity: 0.3;
   cursor: not-allowed;
 }
+
+/* ── Follow-up topics (expand in same island) ── */
+.hl-di__followups {
+  margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+}
+
+.hl-di__followups-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 6px 0;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hl-di__followups-toggle:hover {
+  color: rgba(90, 200, 250, 0.9);
+}
+
+.hl-di__followups-chevron {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.hl-di__followups-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.hl-di__followups-empty {
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.4;
+}
+
+.hl-di__followup-topic {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.hl-di__followup-topic-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hl-di__followup-topic-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hl-di__followup-topic-count {
+  font-size: 0.7rem;
+  color: rgba(90, 200, 250, 0.8);
+  font-weight: 500;
+}
+
+.hl-di__followup-chevron {
+  margin-left: auto;
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.hl-di__followup-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 12px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.hl-di__followup-item {
+  margin-top: 8px;
+}
+
+.hl-di__followup-item:first-child {
+  margin-top: 4px;
+}
+
+.hl-di__followup-q {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.4;
+  margin: 0 0 6px;
+}
+
+.hl-di__followup-ask {
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  background: rgba(0, 122, 255, 0.25);
+  border: 1px solid rgba(0, 122, 255, 0.4);
+  border-radius: 8px;
+  color: #5ac8fa;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.hl-di__followup-ask:hover {
+  background: rgba(0, 122, 255, 0.4);
+}

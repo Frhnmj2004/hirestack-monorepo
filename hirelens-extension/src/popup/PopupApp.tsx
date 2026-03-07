@@ -28,10 +28,13 @@ async function injectAndSend(tabId: number, windowId: number, msgType: string, p
   }
 }
 
+const DEBUG_KEY = "hirelens_debug";
+
 export function PopupApp() {
   const [hasActiveSession, setHasActiveSession] = useState<boolean | null>(null);
   const [activeCandidate, setActiveCandidate] = useState("");
   const [activeRole, setActiveRole] = useState("");
+  const [debugMode, setDebugMode] = useState(false);
 
   useEffect(() => {
     store.get(STORAGE_KEY, (result) => {
@@ -44,7 +47,13 @@ export function PopupApp() {
         setHasActiveSession(false);
       }
     });
+    store.get(DEBUG_KEY, (r) => setDebugMode(!!(r && (r as Record<string, boolean>)[DEBUG_KEY])));
   }, []);
+
+  const setDebug = (on: boolean) => {
+    setDebugMode(on);
+    store.set({ [DEBUG_KEY]: on });
+  };
 
   const handleShowSidebar = async () => {
     const result = await store.get(STORAGE_KEY);
@@ -114,6 +123,14 @@ export function PopupApp() {
               End session
             </button>
           </div>
+          <label className="hl-popup__debug-toggle">
+            <input
+              type="checkbox"
+              checked={debugMode}
+              onChange={(e) => setDebug(e.target.checked)}
+            />
+            <span>Debug mode (log all steps in Meet tab console)</span>
+          </label>
         </div>
       </div>
     );
@@ -153,6 +170,14 @@ export function PopupApp() {
           <span className="hl-popup__auth-dot" />
           <span>Interviewer mode</span>
         </div>
+        <label className="hl-popup__debug-toggle">
+          <input
+            type="checkbox"
+            checked={debugMode}
+            onChange={(e) => setDebug(e.target.checked)}
+          />
+          <span>Debug mode (log in Meet tab console)</span>
+        </label>
       </div>
     </div>
   );

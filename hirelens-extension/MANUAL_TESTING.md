@@ -89,13 +89,15 @@ End-to-end manual testing from a clean slate. The extension adds a **dedicated r
 
 **Check:** Briefing panel is visible; “Start interview” is available.
 
+**Note:** Once you start the interview, if you click the **Home** rail again you will see **“Interview in progress”** and a **“Go to Interview →”** button instead of the Briefing with “Start interview” — so you never see “Start interview” twice.
+
 ### 2.4 Start the interview
 
 1. Click **“Start interview”** in the sidebar.
 2. Expected:
    - The sidebar switches to the **Interview** tab (second rail icon).
    - **Dynamic Island** appears at the **top center** of the page (dark glass pill with current question, job/candidate, progress dots, prev/next).
-   - **Live Q&A** panel may appear at the **top-left** (glass style) with “Now asking” and transcript area.
+   - **Live Q&A** panel at the **bottom-left** (glass style, collapsible to a pill) with “Now asking” and transcript area.
    - Interview header in sidebar: candidate name, role, **timer**, **“X/Y covered”**, **“X/Y topics done”**, progress bar, and **“Now asking”** with the current question text.
    - **Topic tree** at the top: topics with ▶/▼; each topic shows questions (Q1, Q2, …) with ○/✓ to mark answered.
    - Below: **Topics & questions** accordion with the same questions.
@@ -142,12 +144,24 @@ End-to-end manual testing from a clean slate. The extension adds a **dedicated r
 
 ### 3.5 Live Q&A stream
 
-1. After starting the interview, the **top-left** panel should show **“Live Q&A”**.
+1. After starting the interview, the **bottom-left** panel should show **“Live Q&A”** (expand from pill if collapsed).
 2. **“Now asking”** should show the current question.
 3. When the backend sends **transcript** (or in mock), **candidate (A)** lines can appear in the scrollable area.
 4. When you **change the question** (click or prev/next), a new **interviewer (Q)** line can be added for the new “Now asking” question.
 
 **Check:** Live Q&A panel shows current question and transcript lines when available.
+
+---
+
+## Part 3.6 — Follow-up topics in Dynamic Island
+
+1. With the **demo interview** open and interview started, the **first question** has **mock follow-ups** (so you can test without the backend).
+2. In the **Dynamic Island** (top center), below the question and progress dots, you should see **“Follow-up topics (N)”** with a ▶/▼ toggle.
+3. Click to **expand**; you’ll see topics (e.g. **Competency**, **Follow-up**) and a count. Click a topic to expand it and see the list of follow-up questions.
+4. Click **“Ask follow-up”** on any line; that question is added as an **interviewer (Q)** line in the **Live Q&A** stream (bottom-left). The candidate’s answer (when sent by the backend or spoken) will appear as **(A)** below.
+5. With a **real backend**, follow-ups are sent via the **insights** WebSocket event for the current question; they appear in the same expandable section.
+
+**Check:** Follow-up topics expand in the Dynamic Island; “Ask follow-up” pushes the question to Live Q&A.
 
 ---
 
@@ -223,6 +237,14 @@ End-to-end manual testing from a clean slate. The extension adds a **dedicated r
 
 **Check:** Closing the sidebar does not clear the session; popup still shows “Session active” until “End session”.
 
+### 5.6 Debug mode (log every step in console)
+
+1. **Enable debug:** In the **popup**, check **“Debug mode (log in Meet tab console)”** (or when session is active: “Debug mode (log all steps in Meet tab console)”). Alternatively, on the **Meet tab** open DevTools (F12) → Console, and run: `window.__HIRELENS_DEBUG = true`.
+2. **Watch logs:** With the **Meet tab** focused and DevTools **Console** open, every action is logged with a `[HireLens action]`, `[HireLens ws]`, `[HireLens audio]`, or `[HireLens state]` prefix when debug is on: session load, start interview, select question, mark answered, follow-up asked, transcript received, insights, alerts, scores, errors.
+3. **Always-on (no debug):** Even with debug off, the extension logs to console: `[HireLens WS] connected`, `[HireLens] Mic streaming started`, and when the backend sends data: `[HireLens] transcript (final): ...`, `[HireLens] insights: N follow-ups for question ...`, `[HireLens] alerts (flags): N`. Use these to confirm STT and pipeline are sending.
+
+**Check:** With debug on, console shows detailed step-by-step logs; with debug off, key WS/mic/transcript/insights/alerts still log once so you can verify the pipeline.
+
 ---
 
 ## Part 6 — New interview (with backend)
@@ -261,6 +283,9 @@ End-to-end manual testing from a clean slate. The extension adds a **dedicated r
 | 14 | Refresh Meet (with session) | Sidebar reappears; progress restored |
 | 15 | Popup with session active | “Session active”, Show sidebar, End session |
 | 16 | End session | Popup → landing; sidebar and island disappear |
+| 17 | Home after start interview | “Interview in progress” + “Go to Interview →” (no “Start interview”) |
+| 18 | Dynamic Island → Follow-up topics | Expand; topic → questions; “Ask follow-up” → Live Q&A |
+| 19 | Debug mode on + Console | [HireLens …] logs for actions, WS, transcript, insights, flags |
 
 ---
 
@@ -277,6 +302,12 @@ End-to-end manual testing from a clean slate. The extension adds a **dedicated r
 
 - **Create interview fails**  
   “Failed to create interview. Check the backend is running.” → Ensure API gateway and assist-service are up and reachable (e.g. `http://localhost:3000`, `http://localhost:3001` for WebSocket).
+
+- **Live Q&A / voice stream not showing, STT not working**  
+  Open DevTools Console on the Meet tab. Look for `[HireLens WS] connected` and `[HireLens] Mic streaming started`. If you see `[HireLens] transcript (final): ...` when you speak, the backend is sending STT; if not, the assist-service may not be receiving audio or may not be sending transcript. Enable **Debug mode** (popup or `window.__HIRELENS_DEBUG = true`) to log every transcript and insight.
+
+- **Follow-ups or flags not showing**  
+  Follow-ups come from the **insights** WebSocket event; flags from the **alerts** event. With the **demo interview**, the first question has **mock follow-ups** and the demo has one **mock flag** so you can test the UI without the backend. For real data, ensure the assist-service pipeline sends `insights` and `alerts`. Check console for `[HireLens] insights: N follow-ups` and `[HireLens] alerts (flags): N` when the backend sends.
 
 - **Console errors on Meet tab**  
   Open DevTools (F12) on the Meet tab → Console. Fix any red errors (e.g. missing `content.js`, WebSocket or CORS issues).

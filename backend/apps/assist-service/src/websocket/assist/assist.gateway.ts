@@ -40,7 +40,7 @@ export class AssistGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.clientSession.set(client.id, { sessionId, candidateId });
     this.streaming.startStream(sessionId, activeQuestion, {
       onTranscript: (text, isFinal) => {
-        client.emit('transcript', { text, isFinal });
+        client.emit('transcript', { text, isFinal, speaker: 'candidate' });
       },
       onTurnDone: async (transcript) => {
         const q = this.streaming.getActiveQuestion(sessionId);

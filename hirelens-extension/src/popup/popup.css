@@ -441,3 +441,23 @@ html, body {
   box-shadow: 0 0 4px rgba(52, 199, 89, 0.6);
   flex-shrink: 0;
 }
+
+.hl-popup__debug-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+}
+
+.hl-popup__debug-toggle input {
+  accent-color: #007aff;
+}
+
+.hl-popup__debug-toggle span {
+  flex: 1;
+}

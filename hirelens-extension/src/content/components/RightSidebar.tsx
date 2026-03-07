@@ -533,6 +533,22 @@ function NoSessionHomePanel({ onSessionCreated }: { onSessionCreated: (s: Interv
   );
 }
 
+// ── Home: Interview already started (don't show Start button again) ───────────
+function InterviewInProgressPanel({ onGoToInterview }: { onGoToInterview: () => void }) {
+  return (
+    <div className="hl-sb__panel-content">
+      <div className="hl-sb__in-progress-card">
+        <span className="hl-sb__live-dot" />
+        <p className="hl-sb__in-progress-title">Interview in progress</p>
+        <p className="hl-sb__dim">You started the interview. Use the Interview tab for questions and progress.</p>
+        <button type="button" className="hl-sb__in-progress-btn" onClick={onGoToInterview}>
+          Go to Interview →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Tab 1: Home — With session (candidate briefing) ───────────────────────────
 function BriefingPanel({ session, onStart }: { session: InterviewSession; onStart: () => void }) {
   const { candidate, jobRole } = session;
@@ -797,7 +813,7 @@ function InsightsPanel({ session, currentIndex }: { session: InterviewSession; c
           {currentQ && <span className="hl-sb__block-subtitle"> — Q{currentIndex + 1}: {currentQ.competency}</span>}
         </p>
         {followUps.length === 0 && session.followUps.length === 0 ? (
-          <p className="hl-sb__empty-state">No follow-ups yet. AI generates these after each candidate answer is transcribed.</p>
+          <p className="hl-sb__empty-state">No follow-ups yet. Backend sends these dynamically after each candidate answer (insights event). Ensure the assist-service pipeline is running and the candidate has spoken.</p>
         ) : followUps.length === 0 ? (
           <>
             <p className="hl-sb__empty-state" style={{ marginBottom: 8 }}>No follow-ups for this question yet.</p>
@@ -1040,7 +1056,9 @@ export function RightSidebar({
         <div className="hl-sb__scroll">
           {tab === "home" && (
             session
-              ? <BriefingPanel session={session} onStart={onStartInterview} />
+              ? session.interviewStarted
+                ? <InterviewInProgressPanel onGoToInterview={() => setTab("interview")} />
+                : <BriefingPanel session={session} onStart={onStartInterview} />
               : <NoSessionHomePanel onSessionCreated={onSessionCreated} />
           )}
           {tab === "interview" && session && (

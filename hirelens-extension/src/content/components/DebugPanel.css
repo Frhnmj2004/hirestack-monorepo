@@ -1,0 +1,113 @@
+/* Debug panel — red theme, fixed position */
+.hl-dbg {
+  position: fixed;
+  bottom: 24px;
+  right: 420px;
+  width: 380px;
+  max-height: 320px;
+  z-index: 2147483644;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  background: rgba(60, 12, 12, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 80, 80, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(255, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.hl-dbg__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(120, 20, 20, 0.9);
+  border-bottom: 1px solid rgba(255, 80, 80, 0.3);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ff6b6b;
+  letter-spacing: 0.04em;
+}
+
+.hl-dbg__title {
+  flex: 1;
+}
+
+.hl-dbg__clear {
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #ff6b6b;
+  background: rgba(255, 80, 80, 0.2);
+  border: 1px solid rgba(255, 80, 80, 0.4);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.hl-dbg__clear:hover {
+  background: rgba(255, 80, 80, 0.35);
+}
+
+.hl-dbg__scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 280px;
+  padding: 6px 0;
+}
+
+.hl-dbg__empty {
+  padding: 16px 12px;
+  margin: 0;
+  font-size: 0.72rem;
+  color: rgba(255, 150, 150, 0.7);
+}
+
+.hl-dbg__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 8px;
+  padding: 4px 12px;
+  font-size: 0.68rem;
+  font-family: ui-monospace, monospace;
+  border-bottom: 1px solid rgba(255, 80, 80, 0.08);
+  line-height: 1.35;
+}
+
+.hl-dbg__row:hover {
+  background: rgba(255, 80, 80, 0.06);
+}
+
+.hl-dbg__time {
+  flex-shrink: 0;
+  color: rgba(255, 180, 180, 0.7);
+}
+
+.hl-dbg__level {
+  flex-shrink: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.hl-dbg__msg {
+  flex: 1;
+  min-width: 0;
+  color: rgba(255, 220, 220, 0.95);
+  word-break: break-word;
+}
+
+.hl-dbg__data {
+  width: 100%;
+  margin: 2px 0 0;
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+  color: rgba(255, 200, 200, 0.9);
+  font-size: 0.65rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}

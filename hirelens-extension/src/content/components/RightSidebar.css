@@ -228,6 +228,48 @@
 .hl-sb__dim { color: rgba(255, 255, 255, 0.35); }
 
 /* ── Home / Briefing panel ── */
+.hl-sb__in-progress-card {
+  padding: 24px 20px;
+  text-align: center;
+  background: rgba(0, 122, 255, 0.08);
+  border: 1px solid rgba(0, 122, 255, 0.25);
+  border-radius: 14px;
+  margin: 16px;
+}
+
+.hl-sb__in-progress-card .hl-sb__live-dot {
+  display: inline-block;
+  margin-bottom: 10px;
+}
+
+.hl-sb__in-progress-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.hl-sb__in-progress-card .hl-sb__dim {
+  font-size: 0.8rem;
+  margin: 0 0 16px;
+}
+
+.hl-sb__in-progress-btn {
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(0, 122, 255, 0.9);
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.hl-sb__in-progress-btn:hover {
+  background: rgba(0, 122, 255, 1);
+}
+
 .hl-sb__briefing-hero {
   display: flex;
   align-items: flex-start;

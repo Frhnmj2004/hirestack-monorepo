@@ -311,7 +311,7 @@ export interface CompetencyScorePayload {
 }
 
 export interface RealtimeCallbacks {
-  onTranscript?: (text: string, isFinal: boolean) => void;
+  onTranscript?: (text: string, isFinal: boolean, speaker?: "interviewer" | "candidate") => void;
   onInsights?: (data: {
     keyInsights: string[];
     skillSignals: string[];
@@ -344,8 +344,10 @@ export class InterviewRealtimeManager {
       this.socket!.emit("session", { sessionId, candidateId, activeQuestion: "" });
     });
 
-    this.socket.on("transcript", (data: { text: string; isFinal: boolean }) => {
-      callbacks.onTranscript?.(data.text, data.isFinal);
+    this.socket.on("transcript", (data: { text: string; isFinal: boolean; speaker?: "interviewer" | "candidate" }) => {
+      const speaker = data.speaker ?? "candidate";
+      if (data.isFinal && data.text?.trim()) console.log("[HireLens] transcript (final):", speaker, data.text.slice(0, 60));
+      callbacks.onTranscript?.(data.text, data.isFinal, speaker);
     });
 
     this.socket.on("insights", (data: {
@@ -354,10 +356,13 @@ export class InterviewRealtimeManager {
       followUpQuestions: Array<{ question: string; type: string }>;
       competencyQuestions: Array<{ question: string; type: string }>;
     }) => {
+      const total = (data.followUpQuestions?.length ?? 0) + (data.competencyQuestions?.length ?? 0);
+      if (total > 0) console.log("[HireLens] insights:", total, "follow-ups for question", this.currentQuestionId);
       callbacks.onInsights?.(data, this.currentQuestionId);
     });
 
     this.socket.on("alerts", (data: AlertItem[]) => {
+      if (data?.length) console.log("[HireLens] alerts (flags):", data.length);
       callbacks.onAlerts?.(data);
     });
 
@@ -519,12 +524,6 @@ function makeMockSession(item: InterviewListItem): InterviewSession {
     covered: false,
   }));
 
-  const mockAlerts: Record<string, AlertItem[]> = {
-    "mock-int-aryan": [
-      { id: "a1", type: "contradiction", claim: "Candidate says 4 years React; resume shows first React project in Jan 2022.", transcriptSnippet: "", resumeEvidence: "First React project: InMobi Ad SDK — Jan 2022", explanation: "Minor discrepancy — may count side projects.", suggestedQuestion: "When did you start using React professionally?", confidence: 0.78, severity: "low", createdAt: new Date().toISOString() },
-    ],
-  };
-
   return {
     sessionId: `mock-session-${item.interviewId}`,
     status: "active",
@@ -548,7 +547,7 @@ function makeMockSession(item: InterviewListItem): InterviewSession {
     topics,
     currentQuestionIndex: 0,
     followUps: [],
-    alerts: mockAlerts[item.interviewId] ?? [],
+    alerts: [],
     transcript: [],
     insights: [],
     skillSignals: [],
