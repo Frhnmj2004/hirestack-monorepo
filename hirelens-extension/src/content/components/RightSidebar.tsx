@@ -113,6 +113,65 @@ function getTopicQuestions(topic: InterviewTopic, questions: QuestionItem[]) {
   return questions.filter((q) => topic.questionIds.includes(q.id));
 }
 
+function TopicTreeView({
+  topics,
+  questions,
+  currentIndex,
+  onSelectQuestion,
+  onMarkAnswered,
+}: {
+  topics: InterviewTopic[];
+  questions: QuestionItem[];
+  currentIndex: number;
+  onSelectQuestion: (i: number) => void;
+  onMarkAnswered: (id: string, score?: number) => void;
+}) {
+  return (
+    <div className="hl-sb__tree">
+      <p className="hl-sb__tree-title">Topic tree</p>
+      <div className="hl-sb__tree-list">
+        {topics.map((topic) => {
+          const topicQs = getTopicQuestions(topic, questions);
+          const doneCount = topicQs.filter((q) => q.answered).length;
+          return (
+            <div key={topic.id} className="hl-sb__tree-node hl-sb__tree-node--topic">
+              <div className="hl-sb__tree-topic-row">
+                <span className="hl-sb__tree-topic-name">{topic.name}</span>
+                <span className="hl-sb__tree-topic-count">{doneCount}/{topicQs.length}</span>
+              </div>
+              <div className="hl-sb__tree-children">
+                {topicQs.map((q) => {
+                  const qIdx = questions.findIndex((x) => x.id === q.id);
+                  const isActive = qIdx === currentIndex;
+                  return (
+                    <div
+                      key={q.id}
+                      className={`hl-sb__tree-q ${isActive ? "active" : ""} ${q.answered ? "answered" : ""}`}
+                    >
+                      <button type="button" className="hl-sb__tree-q-btn" onClick={() => onSelectQuestion(qIdx)}>
+                        <span className="hl-sb__tree-q-num">Q{qIdx + 1}</span>
+                        <span className="hl-sb__tree-q-text">{q.text.slice(0, 56)}{q.text.length > 56 ? "…" : ""}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`hl-sb__tree-q-mark ${q.answered ? "done" : ""}`}
+                        onClick={() => onMarkAnswered(q.id, q.answered ? undefined : parseFloat((5 + Math.random() * 4.5).toFixed(1)))}
+                        title={q.answered ? "Mark unanswered" : "Mark as answered"}
+                      >
+                        {q.answered ? "✓" : "○"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function topicProgress(topic: InterviewTopic, questions: QuestionItem[]): number {
   const qs = getTopicQuestions(topic, questions);
   if (!qs.length) return 0;
@@ -626,6 +685,14 @@ function InterviewPanel({
       </div>
 
       <div className="hl-sb__panel-content" ref={scrollRef}>
+        <TopicTreeView
+          topics={session.topics}
+          questions={session.questions}
+          currentIndex={currentIndex}
+          onSelectQuestion={onSelectQuestion}
+          onMarkAnswered={onMarkAnswered}
+        />
+        <p className="hl-sb__section-title" style={{ marginTop: 16, marginBottom: 8 }}>Topics & questions</p>
         {session.topics.map((topic) => {
           const prog = topicProgress(topic, session.questions);
           const avgScore = topicAvgScore(topic, session.questions);
@@ -696,6 +763,14 @@ function InsightsPanel({ session, currentIndex }: { session: InterviewSession; c
   const currentQ = session.questions[currentIndex];
   const followUps = session.followUps.filter((f: FollowUpItem) => f.questionId === currentQ?.id);
 
+  const followUpsByTopic = session.followUps.reduce<Record<string, FollowUpItem[]>>((acc, f) => {
+    const q = session.questions.find((qu) => qu.id === f.questionId);
+    const topic = q?.competency ?? "General";
+    if (!acc[topic]) acc[topic] = [];
+    acc[topic].push(f);
+    return acc;
+  }, {});
+
   return (
     <div className="hl-sb__panel-content">
       <div className="hl-sb__section-block">
@@ -731,6 +806,26 @@ function InsightsPanel({ session, currentIndex }: { session: InterviewSession; c
           </div>
         )}
       </div>
+
+      {Object.keys(followUpsByTopic).length > 0 && (
+        <div className="hl-sb__section-block">
+          <p className="hl-sb__block-title">Follow-up topics</p>
+          <p className="hl-sb__dim" style={{ marginBottom: 8 }}>Suggested areas to probe further, by competency</p>
+          {Object.entries(followUpsByTopic).map(([topic, list]) => (
+            <div key={topic} className="hl-sb__followup-topic">
+              <span className="hl-sb__followup-topic-name">{topic}</span>
+              <ul className="hl-sb__followup-topic-list">
+                {list.map((f) => (
+                  <li key={f.id} className={`hl-sb__followup hl-sb__followup--${f.type}`}>
+                    <span className="hl-sb__followup-type">{f.type === "follow_up" ? "Follow-up" : "Competency"}</span>
+                    <p className="hl-sb__followup-text">{f.question}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
 
       {session.insights.length > 0 && (
         <div className="hl-sb__section-block">

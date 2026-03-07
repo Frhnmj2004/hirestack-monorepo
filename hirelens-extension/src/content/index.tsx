@@ -10,6 +10,7 @@ import {
 import type { InterviewSession, SessionPayload, FollowUpItem } from "../shared/types";
 import contentCss from "./content.css?raw";
 import islandCss from "./components/DynamicIsland.css?raw";
+import liveStreamCss from "./components/LiveStreamPanel.css?raw";
 import sidebarCss from "./components/RightSidebar.css?raw";
 
 const STORAGE_KEY = "hirelens_session";
@@ -323,7 +324,7 @@ function ContentApp() {
           canPrev={currentIndex > 0}
         />
       )}
-      {session?.interviewStarted && session.transcript.length > 0 && (
+      {session?.interviewStarted && (
         <LiveStreamPanel transcript={session.transcript} currentQuestion={currentQuestion?.text} />
       )}
       <RightSidebar
@@ -347,7 +348,7 @@ function mount() {
   const shadow = host.attachShadow({ mode: "open" });
 
   const style = document.createElement("style");
-  style.textContent = [contentCss, islandCss, sidebarCss].join("\n");
+  style.textContent = [contentCss, islandCss, liveStreamCss, sidebarCss].join("\n");
   shadow.appendChild(style);
 
   const inner = document.createElement("div");
