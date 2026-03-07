@@ -234,6 +234,11 @@
   border-left: 3px solid #34c759;
 }
 
+.hl-dbg__stream-row--interim .hl-dbg__stream-text {
+  font-style: italic;
+  opacity: 0.9;
+}
+
 .hl-dbg__stream-time {
   display: inline-block;
   margin-right: 8px;

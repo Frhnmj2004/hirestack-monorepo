@@ -79,13 +79,46 @@ export class StreamingService {
       }
     });
 
+    let firstMessageLogged = false;
+    let firstTranscriptLogged = false;
+    let emptyTranscriptLogged = false;
     connection.on('message', (data: unknown) => {
-      const msg = data as { channel?: { alternatives?: Array<{ transcript?: string; is_final?: boolean }> } };
-      const alt = msg.channel?.alternatives?.[0];
-      const text = alt?.transcript?.trim();
-      const isFinal = alt?.is_final ?? false;
-      if (!text) return;
+      const raw = typeof data === 'string' ? JSON.parse(data) : data;
+      const msg = raw as {
+        type?: string;
+        is_final?: boolean;
+        speech_final?: boolean;
+        transcript?: string;
+        channel?: { alternatives?: Array<{ transcript?: string; is_final?: boolean }> };
+        alternatives?: Array<{ transcript?: string; is_final?: boolean }>;
+      };
+      if (!firstMessageLogged) {
+        firstMessageLogged = true;
+        console.log('[StreamingService] First Deepgram message type:', msg.type, 'keys:', Object.keys(msg).join(', '));
+        const ch = msg.channel as Record<string, unknown> | undefined;
+        if (ch) {
+          const altArr = ch.alternatives;
+          console.log('[StreamingService] channel keys:', Object.keys(ch).join(', '), 'alternatives type:', Array.isArray(altArr) ? `array[${(altArr as unknown[]).length}]` : typeof altArr);
+          if (Array.isArray(altArr) && altArr.length > 0) console.log('[StreamingService] first alternative keys:', Object.keys((altArr[0] as Record<string, unknown>) || {}).join(', '));
+        }
+      }
+      const alts = msg.channel?.alternatives ?? msg.alternatives;
+      const alt = Array.isArray(alts) ? alts[0] : undefined;
+      const rawTranscript = alt?.transcript ?? msg.transcript ?? '';
+      const text = typeof rawTranscript === 'string' ? rawTranscript.trim() : String(rawTranscript).trim();
+      const isFinal = msg.is_final ?? alt?.is_final ?? false;
+      if (!text) {
+        if (msg.type === 'Results' && alt && !emptyTranscriptLogged) {
+          emptyTranscriptLogged = true;
+          console.log('[StreamingService] Deepgram Results but empty transcript (tab audio may be silent or too quiet). Try speaking on the shared tab.');
+        }
+        return;
+      }
       state.lastActivity = Date.now();
+      if (!firstTranscriptLogged) {
+        firstTranscriptLogged = true;
+        console.log('[StreamingService] First transcript to client:', isFinal ? 'final' : 'interim', text.slice(0, 80));
+      }
       state.callbacks.onTranscript?.(text, isFinal);
       if (isFinal) {
         state.buffer = state.buffer ? `${state.buffer} ${text}` : text;

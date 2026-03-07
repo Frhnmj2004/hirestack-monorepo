@@ -8,6 +8,7 @@ type TabId = "current" | "livestream";
 interface DebugPanelProps {
   entries: LogEntry[];
   transcript: TranscriptEntry[];
+  interimTranscript?: { speaker: "candidate" | "interviewer"; text: string } | null;
   wsConnected: boolean;
   micStatus?: "pending" | "ok" | "error";
   micError?: string | null;
@@ -37,6 +38,7 @@ function formatTime(iso: string): string {
 export function DebugPanel({
   entries,
   transcript,
+  interimTranscript,
   wsConnected,
   micStatus = "pending",
   micError,
@@ -57,7 +59,7 @@ export function DebugPanel({
   useEffect(() => {
     const el = streamRef.current;
     if (el && tab === "livestream") el.scrollTop = el.scrollHeight;
-  }, [transcript.length, tab]);
+  }, [transcript.length, interimTranscript?.text, tab]);
 
   return (
     <div className="hl-dbg" role="log" aria-label="HireLens debug">
@@ -145,30 +147,47 @@ export function DebugPanel({
       {tab === "livestream" && (
         <div className="hl-dbg__body">
           <p className="hl-dbg__stream-hint">
-            Who is talking — every transcript line from backend (STT) or pushed question. Interviewer = Q; Candidate = A.
+            Who is talking — final lines plus one live interim (updates until speaker stops). Interviewer = Q; Candidate = A.
           </p>
           <div className="hl-dbg__stream" ref={streamRef}>
-            {transcript.length === 0 ? (
+            {transcript.length === 0 && !interimTranscript?.text ? (
               <p className="hl-dbg__empty">
-                No transcript yet. Speak or select a question — candidate speech appears when backend sends transcript (STT).
+                No transcript yet. Candidate speech appears when tab audio is captured and backend sends transcript (STT).
               </p>
             ) : (
-              transcript.map((t) => (
-                <div
-                  key={t.id}
-                  className={`hl-dbg__stream-row hl-dbg__stream-row--${t.speaker}`}
-                  title={t.timestamp}
-                >
-                  <span className="hl-dbg__stream-time">{formatTime(t.timestamp)}</span>
-                  <span className="hl-dbg__stream-speaker">
-                    {t.speaker === "interviewer" ? "Q" : "A"}
-                  </span>
-                  <span className="hl-dbg__stream-label">
-                    {t.speaker === "interviewer" ? "Interviewer" : "Candidate"}
-                  </span>
-                  <p className="hl-dbg__stream-text">{t.text}</p>
-                </div>
-              ))
+              <>
+                {transcript.map((t) => (
+                  <div
+                    key={t.id}
+                    className={`hl-dbg__stream-row hl-dbg__stream-row--${t.speaker}`}
+                    title={t.timestamp}
+                  >
+                    <span className="hl-dbg__stream-time">{formatTime(t.timestamp)}</span>
+                    <span className="hl-dbg__stream-speaker">
+                      {t.speaker === "interviewer" ? "Q" : "A"}
+                    </span>
+                    <span className="hl-dbg__stream-label">
+                      {t.speaker === "interviewer" ? "Interviewer" : "Candidate"}
+                    </span>
+                    <p className="hl-dbg__stream-text">{t.text}</p>
+                  </div>
+                ))}
+                {interimTranscript?.text && (
+                  <div
+                    className={`hl-dbg__stream-row hl-dbg__stream-row--${interimTranscript.speaker} hl-dbg__stream-row--interim`}
+                    title="Live interim (updating)"
+                  >
+                    <span className="hl-dbg__stream-time">—</span>
+                    <span className="hl-dbg__stream-speaker">
+                      {interimTranscript.speaker === "interviewer" ? "Q" : "A"}
+                    </span>
+                    <span className="hl-dbg__stream-label">
+                      {interimTranscript.speaker === "interviewer" ? "Interviewer" : "Candidate"}
+                    </span>
+                    <p className="hl-dbg__stream-text">{interimTranscript.text}</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

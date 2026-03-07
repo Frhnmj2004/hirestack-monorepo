@@ -18,10 +18,13 @@ export default defineConfig({
       input: {
         popup: resolve(__dirname, "popup.html"),
         background: resolve(__dirname, "src/background/index.ts"),
+        offscreen: resolve(__dirname, "src/offscreen/index.ts"),
       },
       output: {
         entryFileNames: (chunkInfo) =>
-          chunkInfo.name === "background" ? "[name].js" : "assets/[name]-[hash].js",
+          chunkInfo.name === "background" || chunkInfo.name === "offscreen"
+            ? "[name].js"
+            : "assets/[name]-[hash].js",
         chunkFileNames: "assets/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
       },

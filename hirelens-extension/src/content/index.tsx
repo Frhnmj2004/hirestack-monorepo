@@ -115,6 +115,8 @@ function ContentApp() {
   const [micToast, setMicToast] = useState(false);
   const [contextInvalidated, setContextInvalidated] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState<{ speaker: "candidate" | "interviewer"; text: string } | null>(null);
+  const captureActiveRef = useRef(false);
   const wsManager = useRef(new InterviewRealtimeManager());
   currentIndexRef.current = currentIndex;
 
@@ -251,7 +253,14 @@ function ContentApp() {
   // ── 4. Direct message listener ───────────────────────────────────────────────
   useEffect(() => {
     const listener = (
-      msg: { type: string; payload?: SessionPayload },
+      msg: {
+        type: string;
+        payload?: SessionPayload;
+        chunk?: string;
+        encoding?: string;
+        chunkCount?: number;
+        sessionId?: string;
+      },
       _sender: chrome.runtime.MessageSender,
       sendResponse: (r?: unknown) => void
     ) => {
@@ -269,6 +278,13 @@ function ContentApp() {
           sendResponse({ ok: true });
         } else if (msg.type === "HIRELENS_PING") {
           sendResponse({ ok: true, hasSession: !!sessionRef.current });
+        } else if (msg.type === "HL_TAB_AUDIO_CHUNK") {
+          // Audio chunk forwarded from offscreen document via background → content → WebSocket
+          if (msg.chunk && msg.encoding) {
+            wsManager.current.sendEncodedChunk(msg.chunk, msg.encoding, msg.chunkCount ?? 0);
+          }
+          // Fire-and-forget, no sendResponse needed
+          return false;
         } else {
           sendResponse({ ok: false });
         }
@@ -347,21 +363,29 @@ function ContentApp() {
       },
       onAudioSkipped: (reason) => {
         debugLog("audio", "Audio not sent", { reason });
+        if (reason.includes("Tab audio silent")) {
+          setMicError(reason);
+          setMicToast(true);
+        }
+      },
+      onTabAudioLevel: (rms, hasContent, consecutiveSilent) => {
+        debugLog("audio", hasContent ? "Tab audio has content" : "Tab audio silent", { rms: rms.toFixed(6), hasContent, consecutiveSilent });
       },
       onTranscript: (text, isFinal, speaker) => {
         const who = speaker ?? "candidate";
         debugLog("ws", "Transcript received", { speaker: who, text: text.slice(0, 80), isFinal });
-        if (!text.trim()) return;
-        setSession((prev) => {
-          if (!prev) return prev;
-          const entry = {
-            id: `tx-${Date.now()}`,
-            speaker: who,
-            text,
-            timestamp: new Date().toISOString(),
-          };
-          const transcript = [...prev.transcript, entry];
-          if (isFinal) {
+        if (!text.trim() && !isFinal) return;
+        if (isFinal) {
+          setInterimTranscript(null);
+          setSession((prev) => {
+            if (!prev) return prev;
+            const entry = {
+              id: `tx-${Date.now()}`,
+              speaker: who,
+              text: text.trim(),
+              timestamp: new Date().toISOString(),
+            };
+            const transcript = [...prev.transcript, entry];
             const idx = currentIndexRef.current;
             const q = prev.questions[idx];
             if (q && !q.answered) {
@@ -372,9 +396,10 @@ function ContentApp() {
               return { ...prev, transcript, questions };
             }
             return { ...prev, transcript };
-          }
-          return { ...prev, transcript };
-        });
+          });
+        } else {
+          setInterimTranscript({ speaker: who, text });
+        }
       },
       onInsights: (data, questionId) => {
         const followUpCount = (data.followUpQuestions?.length ?? 0) + (data.competencyQuestions?.length ?? 0);
@@ -496,23 +521,43 @@ function ContentApp() {
         throw e;
       }
       connectRealtime(updated);
+
+      // Ask background to start tab capture via offscreen document.
+      // Background calls getMediaStreamId → creates offscreen doc → offscreen captures audio
+      // → background forwards HL_AUDIO_CHUNK → we receive HL_TAB_AUDIO_CHUNK and send to WS.
+      captureActiveRef.current = true;
       setMicStatus("pending");
-      setMicError(null);
-      debugLog("audio", "Requesting microphone access…", { sessionId: updated.sessionId });
-      try {
-        await wsManager.current.startMic(updated.sessionId);
-        setMicStatus("ok");
-        setMicError(null);
-        debugLog("audio", "Mic started — live transcription active", { sessionId: updated.sessionId });
-      } catch (err) {
-        if (isContextInvalidatedError(err)) { handleContextInvalidated(); return; }
-        const msg = err instanceof Error ? err.message : String(err);
-        const isDenied = /denied|permission|not allowed|NotAllowedError/i.test(msg);
-        setMicStatus("error");
-        setMicError(isDenied ? "Microphone access denied. Allow mic for this tab to enable live transcription." : msg);
-        debugLog("error", "Mic failed", { error: msg });
-        setMicToast(true);
-      }
+      debugLog("audio", "Requesting tab audio capture via offscreen document", { sessionId: updated.sessionId });
+
+      // #region agent log
+      fetch('http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'104cc8'},body:JSON.stringify({sessionId:'104cc8',location:'content/index.tsx:handleStartInterview',message:'Sending HIRELENS_START_TAB_CAPTURE to background',data:{sessionId:updated.sessionId},timestamp:Date.now(),hypothesisId:'CONTENT-START'})}).catch(()=>{});
+      // #endregion
+
+      chrome.runtime.sendMessage(
+        { type: "HIRELENS_START_TAB_CAPTURE", sessionId: updated.sessionId },
+        (response: { ok?: boolean; error?: string } | undefined) => {
+          if (chrome.runtime.lastError || response?.error) {
+            const errMsg = chrome.runtime.lastError?.message ?? response?.error ?? "Tab capture failed";
+            console.error("[HireLens] Tab capture failed:", errMsg);
+            setMicStatus("error");
+            setMicError(`Tab audio capture failed: ${errMsg}`);
+            setMicToast(true);
+            debugLog("error", "Tab capture request failed", { error: errMsg });
+            // #region agent log
+            fetch('http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'104cc8'},body:JSON.stringify({sessionId:'104cc8',location:'content/index.tsx:HIRELENS_START_TAB_CAPTURE callback',message:'Tab capture request FAILED',data:{error:errMsg},timestamp:Date.now(),hypothesisId:'CONTENT-START'})}).catch(()=>{});
+            // #endregion
+          } else {
+            setMicStatus("ok");
+            setMicError(null);
+            setMicToast(false);
+            debugLog("audio", "Tab audio capture started via offscreen document", { sessionId: updated.sessionId });
+            // #region agent log
+            fetch('http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'104cc8'},body:JSON.stringify({sessionId:'104cc8',location:'content/index.tsx:HIRELENS_START_TAB_CAPTURE callback',message:'Tab capture started OK',data:{sessionId:updated.sessionId},timestamp:Date.now(),hypothesisId:'CONTENT-START'})}).catch(()=>{});
+            // #endregion
+          }
+        }
+      );
+
       if (q) wsManager.current.setActiveQuestion(updated.sessionId, q.id, q.text);
     } catch (e) {
       if (isContextInvalidatedError(e)) handleContextInvalidated();
@@ -558,6 +603,10 @@ function ContentApp() {
 
   const handleClose = async () => {
     wsManager.current.disconnect();
+    if (captureActiveRef.current) {
+      captureActiveRef.current = false;
+      chrome.runtime.sendMessage({ type: "HIRELENS_STOP_TAB_CAPTURE" }).catch(() => {});
+    }
     const sess = sessionRef.current;
     if (sess?.sessionId && !sess.sessionId.startsWith("mock-") && !sess.sessionId.startsWith("local-")) {
       try { await endAssistSession(sess.sessionId); } catch { /* ignore */ }
@@ -587,6 +636,7 @@ function ContentApp() {
         <DebugPanel
           entries={logEntries}
           transcript={session?.transcript ?? []}
+          interimTranscript={interimTranscript}
           wsConnected={wsConnected}
           micStatus={micStatus}
           micError={micError}
@@ -620,6 +670,7 @@ function ContentApp() {
       {session?.interviewStarted && (
         <LiveStreamPanel
           transcript={session.transcript}
+          interimTranscript={interimTranscript}
           currentQuestion={currentQuestion?.text}
           followUps={session.followUps}
           onAskFollowUp={(questionText) => pushInterviewerQuestion(questionText)}
@@ -633,31 +684,8 @@ function ContentApp() {
       )}
       {micToast && session?.interviewStarted && (
         <div className="hl-mic-toast" role="alert">
-          <p className="hl-mic-toast__text">{micError ?? "Microphone access needed for live transcription."}</p>
+          <p className="hl-mic-toast__text">{micError ?? "Tab audio capture starting…"}</p>
           <div className="hl-mic-toast__actions">
-            <button type="button" className="hl-mic-toast__btn" onClick={async () => {
-              try {
-                setMicToast(false);
-                setMicError(null);
-                setMicStatus("pending");
-                if (sessionRef.current) {
-                  try {
-                    await wsManager.current.startMic(sessionRef.current.sessionId);
-                    setMicStatus("ok");
-                    debugLog("audio", "Mic started (retry)");
-                  } catch (e) {
-                    if (isContextInvalidatedError(e)) { handleContextInvalidated(); return; }
-                    setMicStatus("error");
-                    setMicError(e instanceof Error ? e.message : String(e));
-                    setMicToast(true);
-                  }
-                }
-              } catch (e) {
-                if (isContextInvalidatedError(e)) handleContextInvalidated();
-              }
-            }}>
-              Retry mic
-            </button>
             <button type="button" className="hl-mic-toast__dismiss" onClick={() => setMicToast(false)}>Dismiss</button>
           </div>
         </div>

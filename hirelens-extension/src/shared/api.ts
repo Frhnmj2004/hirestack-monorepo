@@ -317,6 +317,8 @@ export interface RealtimeCallbacks {
   onAudioChunkSent?: (count: number) => void;
   /** Called when audio is not sent because WS is disconnected (throttled). */
   onAudioSkipped?: (reason: string) => void;
+  /** Called periodically with tab audio level info: rms, hasContent, consecutiveSilentChunks. Use for debugging silent tab capture. */
+  onTabAudioLevel?: (rms: number, hasContent: boolean, consecutiveSilent: number) => void;
   onTranscript?: (text: string, isFinal: boolean, speaker?: "interviewer" | "candidate") => void;
   onInsights?: (data: {
     keyInsights: string[];
@@ -332,8 +334,22 @@ export interface RealtimeCallbacks {
 
 const AUDIO_LOG_EVERY_CHUNKS = 50;
 const AUDIO_SKIP_LOG_THROTTLE_MS = 3000;
+/** RMS below this = chunk treated as silent (tab audio may be muted or not playing). */
+const TAB_AUDIO_SILENT_RMS_THRESHOLD = 0.0005;
+/** After this many consecutive silent chunks, log error and notify (e.g. ~15s at 50 chunks/5s). */
+const TAB_AUDIO_SILENT_ERROR_AFTER_CHUNKS = 150;
 
 const AUDIO_CHUNK_SAMPLES = 4096;
+
+function computeChunkRms(float32: Float32Array): number {
+  if (float32.length === 0) return 0;
+  let sumSq = 0;
+  for (let i = 0; i < float32.length; i++) {
+    const s = float32[i];
+    sumSq += s * s;
+  }
+  return Math.sqrt(sumSq / float32.length);
+}
 
 export class InterviewRealtimeManager {
   private socket: Socket | null = null;
@@ -345,6 +361,8 @@ export class InterviewRealtimeManager {
   private callbacks: RealtimeCallbacks = {};
   private audioChunkCount = 0;
   private lastAudioSkipLog = 0;
+  private consecutiveSilentChunks = 0;
+  private tabAudioSilentErrorLogged = false;
 
   connect(sessionId: string, candidateId: string, callbacks: RealtimeCallbacks): void {
     if (this.socket?.connected) return;
@@ -481,6 +499,28 @@ export class InterviewRealtimeManager {
   }
 
   private sendAudioChunk(float32: Float32Array): void {
+    const rms = computeChunkRms(float32);
+    const hasContent = rms >= TAB_AUDIO_SILENT_RMS_THRESHOLD;
+    if (hasContent) {
+      this.consecutiveSilentChunks = 0;
+    } else {
+      this.consecutiveSilentChunks += 1;
+    }
+
+    if (this.audioChunkCount % AUDIO_LOG_EVERY_CHUNKS === 0) {
+      this.callbacks.onTabAudioLevel?.(rms, hasContent, this.consecutiveSilentChunks);
+      if (hasContent) {
+        console.log("[HireLens] Tab audio level: rms=" + rms.toFixed(6) + " (has content), chunk#" + this.audioChunkCount);
+      } else {
+        console.warn("[HireLens] Tab audio level: rms=" + rms.toFixed(6) + " (silent), consecutiveSilent=" + this.consecutiveSilentChunks + ", chunk#" + this.audioChunkCount);
+        if (this.consecutiveSilentChunks >= TAB_AUDIO_SILENT_ERROR_AFTER_CHUNKS && !this.tabAudioSilentErrorLogged) {
+          this.tabAudioSilentErrorLogged = true;
+          console.error("[HireLens] Tab audio appears silent for too long. Ensure the shared tab is playing the call, volume is up, and you selected the correct tab.");
+          this.callbacks.onAudioSkipped?.("Tab audio silent — check shared tab volume and that the call is playing.");
+        }
+      }
+    }
+
     if (!this.socket?.connected) {
       const now = Date.now();
       if (now - this.lastAudioSkipLog >= AUDIO_SKIP_LOG_THROTTLE_MS) {
@@ -503,13 +543,16 @@ export class InterviewRealtimeManager {
     }
   }
 
-  async startMic(sessionId: string): Promise<void> {
+  /**
+   * Start streaming audio from the given MediaStream (e.g. tab capture = candidate audio).
+   * Use this instead of startMic() so we capture the Meet tab output (candidate) not the device mic (interviewer).
+   */
+  async startMicWithStream(sessionId: string, stream: MediaStream): Promise<void> {
     if (this.micStream) return Promise.resolve();
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true } as MediaTrackConstraints,
-    });
     this.micStream = stream;
     this.float32Buffer = [];
+    this.consecutiveSilentChunks = 0;
+    this.tabAudioSilentErrorLogged = false;
     this.audioCtx = new AudioContext({ sampleRate: 16000 });
 
     const processorUrl =
@@ -535,8 +578,14 @@ export class InterviewRealtimeManager {
     }
 
     const source = this.audioCtx.createMediaStreamSource(this.micStream);
+    const gainNode = this.audioCtx.createGain();
+    gainNode.gain.value = 5.0;
     const node = new AudioWorkletNode(this.audioCtx, "capture-processor");
     this.workletNode = node;
+
+    source.connect(gainNode);
+    gainNode.connect(node);
+    node.connect(this.audioCtx.destination);
 
     node.port.onmessage = (e: MessageEvent<{ samples: Float32Array }>) => {
       const samples = e.data?.samples;
@@ -549,9 +598,27 @@ export class InterviewRealtimeManager {
       }
     };
 
-    source.connect(node);
-    node.connect(this.audioCtx.destination);
-    console.log("[HireLens] Mic streaming started (AudioWorklet) →", sessionId);
+    console.log("[HireLens] Tab audio streaming started (candidate) →", sessionId);
+  }
+
+  /**
+   * Send a pre-encoded audio chunk (base64 linear16) received from the offscreen document
+   * via the background script. This bypasses the local AudioContext pipeline entirely.
+   */
+  sendEncodedChunk(chunk: string, encoding: string, _chunkCount: number): void {
+    if (!this.socket?.connected) {
+      const now = Date.now();
+      if (now - this.lastAudioSkipLog >= AUDIO_SKIP_LOG_THROTTLE_MS) {
+        this.lastAudioSkipLog = now;
+        this.callbacks.onAudioSkipped?.("WS not connected (offscreen chunk)");
+      }
+      return;
+    }
+    this.socket!.emit("audio", { chunk, encoding });
+    this.audioChunkCount += 1;
+    if (this.audioChunkCount % AUDIO_LOG_EVERY_CHUNKS === 0) {
+      this.callbacks.onAudioChunkSent?.(this.audioChunkCount);
+    }
   }
 
   stopMic(): void {

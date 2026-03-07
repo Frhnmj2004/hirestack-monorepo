@@ -148,6 +148,11 @@
   align-items: flex-start;
 }
 
+.hl-ls__entry--interim .hl-ls__entry-text {
+  opacity: 0.92;
+  font-style: italic;
+}
+
 .hl-ls__entry-role {
   flex-shrink: 0;
   width: 20px;

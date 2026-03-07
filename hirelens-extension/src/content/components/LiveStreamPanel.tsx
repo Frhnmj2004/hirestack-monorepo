@@ -4,6 +4,7 @@ import "./LiveStreamPanel.css";
 
 interface LiveStreamPanelProps {
   transcript: TranscriptEntry[];
+  interimTranscript?: { speaker: "candidate" | "interviewer"; text: string } | null;
   currentQuestion?: string;
   followUps?: FollowUpItem[];
   onAskFollowUp?: (questionText: string) => void;
@@ -13,12 +14,16 @@ const MAX_VISIBLE = 8;
 
 export function LiveStreamPanel({
   transcript,
+  interimTranscript,
   currentQuestion,
   followUps = [],
   onAskFollowUp,
 }: LiveStreamPanelProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const visible = transcript.slice(-MAX_VISIBLE);
+  const withInterim = interimTranscript?.text
+    ? [...transcript, { id: "interim", speaker: interimTranscript.speaker, text: interimTranscript.text, timestamp: "" }]
+    : transcript;
+  const visible = withInterim.slice(-MAX_VISIBLE);
 
   return (
     <div className={`hl-ls ${collapsed ? "hl-ls--collapsed" : ""}`} aria-label="Live Q&A stream">
@@ -59,7 +64,7 @@ export function LiveStreamPanel({
               {visible.map((entry) => (
                 <div
                   key={entry.id}
-                  className={`hl-ls__entry hl-ls__entry--${entry.speaker}`}
+                  className={`hl-ls__entry hl-ls__entry--${entry.speaker} ${entry.id === "interim" ? "hl-ls__entry--interim" : ""}`}
                 >
                   <span className="hl-ls__entry-role">
                     {entry.speaker === "interviewer" ? "Q" : "A"}
