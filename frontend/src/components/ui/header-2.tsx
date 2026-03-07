@@ -12,27 +12,7 @@ import hireLensLogo from '@/assets/HireLens_Dark.svg';
 export function Header() {
     const [open, setOpen] = React.useState(false);
     const scrolled = useScroll(10);
-    const [overDarkSection, setOverDarkSection] = React.useState(false);
 
-    // Detect when the dark bento grid crosses into the header zone
-    React.useEffect(() => {
-        const grid = document.getElementById('features-grid');
-        if (!grid) return;
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                setOverDarkSection(entry.isIntersecting);
-            },
-            {
-                // fire only when the grid is within the top ~64px of the viewport (header height)
-                rootMargin: '-0px 0px -90% 0px',
-                threshold: 0,
-            }
-        );
-
-        observer.observe(grid);
-        return () => observer.disconnect();
-    }, []);
 
     const links = [
         {
@@ -94,12 +74,7 @@ export function Header() {
                             key={i}
                             className={buttonVariants({
                                 variant: 'ghost',
-                                className: cn(
-                                    'text-sm transition-colors duration-300',
-                                    overDarkSection
-                                        ? 'text-white/80 hover:text-white hover:bg-white/10'
-                                        : 'text-brand-light-textSecondary hover:text-brand-light-textPrimary'
-                                ),
+                                className: 'text-sm text-brand-light-textSecondary hover:text-brand-light-textPrimary',
                             })}
                             href={link.href}
                         >

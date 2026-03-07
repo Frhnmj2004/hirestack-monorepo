@@ -1,20 +1,33 @@
 import type { Metadata } from "next";
-import { DM_Sans, Instrument_Serif } from "next/font/google";
+import { Poppins, EB_Garamond, Instrument_Serif, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
 
-const dmSans = DM_Sans({
+const poppins = Poppins({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-dm-sans"
+  variable: "--font-poppins"
+});
+
+const ebGaramond = EB_Garamond({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-eb-garamond"
 });
 
 const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
   weight: ["400"],
+  style: ["normal", "italic"],
   variable: "--font-instrument-serif"
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-dm-sans"
 });
 
 export const metadata: Metadata = {
@@ -29,7 +42,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn("min-h-screen font-sans antialiased bg-background text-foreground", dmSans.variable, instrumentSerif.variable)}>
+      <head>
+        {/* Prefetch login screen asset in the background */}
+        <link rel="prefetch" href="https://i.ibb.co/dJxBbFks/brandasset.png" as="image" />
+      </head>
+      <body className={cn("min-h-screen font-sans antialiased bg-background text-foreground", poppins.variable, ebGaramond.variable, instrumentSerif.variable, dmSans.variable)}>
         <QueryProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
             {children}

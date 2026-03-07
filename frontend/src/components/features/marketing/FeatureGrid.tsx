@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import ScrollReveal from '@/components/ui/scroll-reveal';
 import { ParticleCard, GlobalSpotlight, useMobileDetection } from '@/components/ui/MagicBento';
+import FadeContent from '@/components/ui/FadeContent';
 
 /* ─── Glow colour: brand violet on white cards ───────────────── */
 const GLOW_COLOR = '90, 70, 218';
@@ -319,59 +320,74 @@ export function FeatureGrid() {
                     id="features-grid"
                     className="bento-section grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                 >
-                    {/* Row 1 — inverted wide card + normal card */}
-                    <BentoCard
-                        title="AI Resume Parsing"
-                        description="Instantly extract skills, experience, and education from thousands of resumes with human-level accuracy."
-                        className="lg:col-span-2"
-                        disableAnimations={isMobile}
-                    >
-                        <ResumeMockup />
-                    </BentoCard>
+                    {/* Row 1 — wide card + normal card */}
+                    <FadeContent blur duration={800} ease="power2.out" initialOpacity={0} threshold={0.15} delay={0} className="lg:col-span-2 flex">
+                        <BentoCard
+                            title="AI Resume Parsing"
+                            description="Instantly extract skills, experience, and education from thousands of resumes with human-level accuracy."
+                            className="lg:col-span-2 flex-1"
+                            disableAnimations={isMobile}
+                        >
+                            <ResumeMockup />
+                        </BentoCard>
+                    </FadeContent>
 
-                    <BentoCard
-                        title="Automated Shortlisting"
-                        description="Define your ideal criteria and HireLens surfaces the best-fit candidates, ranked automatically."
-                        disableAnimations={isMobile}
-                    >
-                        <ShortlistMockup />
-                    </BentoCard>
+                    <FadeContent blur duration={800} ease="power2.out" initialOpacity={0} threshold={0.15} delay={100} className="flex">
+                        <BentoCard
+                            title="Automated Shortlisting"
+                            description="Define your ideal criteria and HireLens surfaces the best-fit candidates, ranked automatically."
+                            className="flex-1"
+                            disableAnimations={isMobile}
+                        >
+                            <ShortlistMockup />
+                        </BentoCard>
+                    </FadeContent>
 
                     {/* Row 2 */}
-                    <BentoCard
-                        title="Empirical Scoring"
-                        description="Say goodbye to bias. Candidates are scored on a standardised rubric based purely on performance."
-                        disableAnimations={isMobile}
-                    >
-                        <ScoringMockup />
-                    </BentoCard>
+                    <FadeContent blur duration={800} ease="power2.out" initialOpacity={0} threshold={0.15} delay={200} className="flex">
+                        <BentoCard
+                            title="Empirical Scoring"
+                            description="Say goodbye to bias. Candidates are scored on a standardised rubric based purely on performance."
+                            className="flex-1"
+                            disableAnimations={isMobile}
+                        >
+                            <ScoringMockup />
+                        </BentoCard>
+                    </FadeContent>
 
-                    <BentoCard
-                        title="AI Video Interviews"
-                        description="Our conversational AI conducts structured first-round interviews, assessing both technical and soft skills."
-                        className="lg:col-span-2"
-                        disableAnimations={isMobile}
-                    >
-                        <InterviewMockup />
-                    </BentoCard>
+                    <FadeContent blur duration={800} ease="power2.out" initialOpacity={0} threshold={0.15} delay={300} className="lg:col-span-2 flex">
+                        <BentoCard
+                            title="AI Video Interviews"
+                            description="Our conversational AI conducts structured first-round interviews, assessing both technical and soft skills."
+                            className="lg:col-span-2 flex-1"
+                            disableAnimations={isMobile}
+                        >
+                            <InterviewMockup />
+                        </BentoCard>
+                    </FadeContent>
 
                     {/* Row 3 */}
-                    <BentoCard
-                        title="Collaborative Hiring"
-                        description="Share transcripts, replay interview highlights, and align your hiring team with a single click."
-                        disableAnimations={isMobile}
-                    >
-                        <CollabMockup />
-                    </BentoCard>
+                    <FadeContent blur duration={800} ease="power2.out" initialOpacity={0} threshold={0.15} delay={400} className="flex">
+                        <BentoCard
+                            title="Collaborative Hiring"
+                            description="Share transcripts, replay interview highlights, and align your hiring team with a single click."
+                            className="flex-1"
+                            disableAnimations={isMobile}
+                        >
+                            <CollabMockup />
+                        </BentoCard>
+                    </FadeContent>
 
-                    <BentoCard
-                        title="Actionable Insights"
-                        description="Track your hiring pipeline, time-to-hire, and diversity metrics through a powerful real-time dashboard."
-                        className="lg:col-span-2"
-                        disableAnimations={isMobile}
-                    >
-                        <InsightsMockup />
-                    </BentoCard>
+                    <FadeContent blur duration={800} ease="power2.out" initialOpacity={0} threshold={0.15} delay={500} className="lg:col-span-2 flex">
+                        <BentoCard
+                            title="Actionable Insights"
+                            description="Track your hiring pipeline, time-to-hire, and diversity metrics through a powerful real-time dashboard."
+                            className="lg:col-span-2 flex-1"
+                            disableAnimations={isMobile}
+                        >
+                            <InsightsMockup />
+                        </BentoCard>
+                    </FadeContent>
                 </div>
             </div>
         </section>
