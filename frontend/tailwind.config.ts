@@ -78,8 +78,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["var(--font-poppins)", "sans-serif"],
-        serif: ["var(--font-eb-garamond)", "serif"],
+        sans: ["var(--font-dm-sans)", "sans-serif"],
+        serif: ["var(--font-instrument-serif)", "serif"],
       },
       boxShadow: {
         glow: "0 0 24px 4px rgba(90, 70, 218, 0.35)",

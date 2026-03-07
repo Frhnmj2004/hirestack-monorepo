@@ -1,20 +1,20 @@
 import type { Metadata } from "next";
-import { Poppins, EB_Garamond } from "next/font/google";
+import { DM_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { QueryProvider } from "@/providers/QueryProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { cn } from "@/lib/utils";
 
-const poppins = Poppins({
+const dmSans = DM_Sans({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-poppins"
+  variable: "--font-dm-sans"
 });
 
-const ebGaramond = EB_Garamond({
+const instrumentSerif = Instrument_Serif({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-eb-garamond"
+  weight: ["400"],
+  variable: "--font-instrument-serif"
 });
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={cn("min-h-screen font-sans antialiased bg-background text-foreground", poppins.variable, ebGaramond.variable)}>
+      <body className={cn("min-h-screen font-sans antialiased bg-background text-foreground", dmSans.variable, instrumentSerif.variable)}>
         <QueryProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
             {children}
