@@ -29,7 +29,7 @@ export function Topbar() {
                         Good morning 👋
                     </h2>
                     <p className="text-xs text-brand-light-textSecondary mt-0.5">
-                        Here's what's happening today
+                        Here&apos;s what&apos;s happening today
                     </p>
                 </div>
 

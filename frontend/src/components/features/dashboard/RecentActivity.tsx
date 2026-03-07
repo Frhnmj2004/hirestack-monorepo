@@ -1,7 +1,6 @@
 'use client';
 
 import { Video, FileText, CheckCircle2, UserPlus, Zap, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 export function RecentActivity() {
     const activities = [
@@ -94,7 +93,7 @@ export function RecentActivity() {
 
             {/* Activity Feed */}
             <div className="flex-1 space-y-3">
-                {activities.map((item, idx) => {
+                {activities.map((item) => {
                     const Icon = item.icon;
                     return (
                         <div

@@ -82,7 +82,7 @@ export function PipelineOverview() {
 
             {/* Funnel bars */}
             <div className="flex-1 flex flex-col justify-center space-y-3">
-                {funnel.map((step, idx) => {
+                {funnel.map((step) => {
                     const maxCount = funnel[0].count;
                     const barWidth = Math.max(8, (step.count / maxCount) * 100);
 
