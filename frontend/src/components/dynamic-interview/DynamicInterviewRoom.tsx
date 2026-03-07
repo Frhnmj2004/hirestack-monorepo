@@ -13,6 +13,8 @@ import {
   RemoteParticipant,
   RemoteTrackPublication,
   LocalParticipant,
+  createLocalTracks,
+  LocalTrack,
   ConnectionState as LKConnectionState,
 } from "livekit-client";
 import { API_BASE_URL } from "@/utils/config";
@@ -203,30 +205,48 @@ export default function DynamicInterviewRoom({
         }
       });
 
+      // Pre-fetch camera and mic permissions cleanly BEFORE connecting
+      let initialTracks: LocalTrack[] = [];
+      try {
+        initialTracks = await createLocalTracks({ audio: true, video: true });
+      } catch (err) {
+        console.warn("[DynamicInterview] Both camera/mic not available, falling back to audio only", err);
+        try {
+          initialTracks = await createLocalTracks({ audio: true, video: false });
+          // User has no camera, sync UI state to match reality:
+          setIsCameraOff(true);
+        } catch (audioErr) {
+          console.error("[DynamicInterview] Even microphone is unavailable", audioErr);
+        }
+      }
+
+      if (cleaningUpRef.current || connectAbortRef.current) {
+        initialTracks.forEach((t) => t.stop());
+        return;
+      }
+
       // Connect to LiveKit room
       await room.connect(creds.livekit_url, creds.livekit_token);
 
       // Guard: component may have been unmounted while connect() was in flight
       if (cleaningUpRef.current || connectAbortRef.current) {
         room.disconnect(true);
+        initialTracks.forEach((t) => t.stop());
         return;
       }
 
       setConnectionState("connected");
 
-      // Enable camera + mic — both are non-fatal, interview continues either way
-      try {
-        await room.localParticipant.setCameraEnabled(true);
-      } catch {
-        console.warn("[DynamicInterview] Camera not available, continuing with audio only");
+      // Safely publish our pre-fetched tracks to the room
+      for (const track of initialTracks) {
+        try {
+          await room.localParticipant.publishTrack(track);
+        } catch (publishErr) {
+          console.warn(`[DynamicInterview] Failed to publish ${track.kind} track:`, publishErr);
+        }
       }
-      try {
-        await room.localParticipant.setMicrophoneEnabled(true);
-      } catch {
-        console.warn("[DynamicInterview] Microphone enable failed", );
-      }
-      // Small delay so LiveKit track objects are fully initialized before we build the MediaStream
-      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Update local preview
       if (!cleaningUpRef.current && !connectAbortRef.current) {
         updateLocalStream(room.localParticipant);
       }
@@ -326,125 +346,125 @@ export default function DynamicInterviewRoom({
     }
   }, [sessionId]);
 
+  // ── ENDED ──────────────────────────────────────────────────────────────────
   if (connectionState === "ended") {
     return (
-      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-        <div className="text-center space-y-6 max-w-md mx-auto px-4">
-          <div className="w-20 h-20 mx-auto bg-green-500/20 rounded-full flex items-center justify-center">
-            <svg
-              className="w-10 h-10 text-green-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
+      <div className="min-h-screen bg-[#080c14] flex items-center justify-center relative overflow-hidden">
+        <div className="absolute top-1/3 left-1/3 w-96 h-96 bg-green-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative max-w-md w-full mx-4">
+          <div className="bg-white/[0.04] backdrop-blur-2xl border border-white/[0.08] rounded-3xl p-12 text-center shadow-2xl">
+            <div className="h-px bg-gradient-to-r from-transparent via-green-500/50 to-transparent mb-10" />
+            <div className="w-20 h-20 mx-auto mb-7 relative">
+              <div className="absolute inset-0 rounded-full bg-green-500/10 animate-pulse" />
+              <div className="relative w-20 h-20 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center">
+                <svg className="w-9 h-9 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3">Interview Complete</h2>
+            <p className="text-gray-400 text-sm leading-relaxed">
+              Thank you for completing the interview. Your responses have been recorded and will be reviewed shortly.
+            </p>
+            <div className="mt-8 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
           </div>
-          <h2 className="text-2xl font-bold text-white">
-            Interview Complete
-          </h2>
-          <p className="text-gray-400">
-            Thank you for completing the interview. Your responses have been
-            recorded and will be reviewed shortly.
-          </p>
         </div>
       </div>
     );
   }
 
+  // ── MAIN ROOM ───────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-gray-900/80 backdrop-blur-sm border-b border-gray-800">
+    <div className="min-h-screen bg-[#080c14] flex flex-col relative overflow-hidden">
+      {/* Ambient background glows */}
+      <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-blue-700/8 rounded-full blur-3xl pointer-events-none" />
+      <div className="fixed bottom-0 right-1/4 w-[400px] h-[400px] bg-violet-700/8 rounded-full blur-3xl pointer-events-none" />
+      {isSpeaking && (
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-500/4 rounded-full blur-3xl pointer-events-none animate-pulse" />
+      )}
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <div className="relative z-10 flex items-center justify-between px-6 py-3.5 bg-white/[0.03] backdrop-blur-xl border-b border-white/[0.06]">
+        {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white text-sm font-bold">S</span>
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+            <span className="text-white text-sm font-bold">H</span>
           </div>
-          <span className="text-white font-medium text-sm">
-            Dynamic Interview
-          </span>
+          <span className="text-white/70 font-medium text-sm">HireStack AI Interview</span>
         </div>
-        <div className="flex items-center gap-2">
+
+        {/* Status pill */}
+        <div className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.08] rounded-full px-3 py-1.5">
           <div
-            className={`w-2 h-2 rounded-full ${
+            className={`w-1.5 h-1.5 rounded-full ${
               connectionState === "connected"
                 ? "bg-green-400"
                 : connectionState === "connecting"
-                ? "bg-yellow-400 animate-pulse"
+                ? "bg-amber-400 animate-pulse"
                 : "bg-red-400"
             }`}
           />
-          <span className="text-gray-400 text-xs capitalize">
-            {connectionState}
-          </span>
+          <span className="text-gray-400 text-xs font-medium capitalize">{connectionState}</span>
         </div>
+
+        {/* Timer placeholder */}
+        <div className="w-24" />
       </div>
 
-      {/* Error Banner */}
+      {/* ── Error Banner ────────────────────────────────────────────────────── */}
       {errorMessage && (
-        <div className="mx-6 mt-4 bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3">
-          <svg
-            className="w-5 h-5 text-red-400 flex-shrink-0"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-          <span className="text-red-300 text-sm">{errorMessage}</span>
+        <div className="relative z-10 mx-6 mt-4 bg-red-500/10 border border-red-500/20 rounded-2xl px-4 py-3 flex items-center gap-3 backdrop-blur-sm">
+          <div className="w-8 h-8 rounded-lg bg-red-500/15 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <span className="text-red-300 text-sm flex-1">{errorMessage}</span>
           <button
-            onClick={() => {
-              setErrorMessage(null);
-              setConnectionState("idle");
-              startSession();
-            }}
-            className="ml-auto text-red-400 hover:text-red-300 text-xs font-medium"
+            onClick={() => { setErrorMessage(null); setConnectionState("idle"); startSession(); }}
+            className="ml-auto text-xs font-semibold text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-lg px-3 py-1 transition-colors"
           >
             Retry
           </button>
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col p-6 gap-4 min-h-0">
-        <div className="flex-1 flex items-center justify-center min-h-0">
-          <div className="relative w-full max-w-4xl aspect-video">
+      {/* ── Main Video Area ─────────────────────────────────────────────────── */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center p-6 gap-4 min-h-0">
+        {/* Avatar + candidate overlay */}
+        <div className="relative w-full max-w-5xl" style={{ aspectRatio: "16/9" }}>
+          {/* Speaking ring */}
+          {isSpeaking && (
+            <div className="absolute -inset-1 rounded-[28px] ring-1 ring-blue-500/40 animate-pulse pointer-events-none z-0" />
+          )}
+
+          {/* Main avatar */}
+          <div className="relative w-full h-full z-10">
             <AvatarTile
               ref={avatarVideoRef}
               isSpeaking={isSpeaking}
               isConnected={connectionState === "connected"}
               isThinking={isThinking}
             />
-            <div className="absolute bottom-4 right-4 z-10">
-              <CandidateTile
-                ref={candidateVideoRef}
-                isMuted={isMuted}
-                isCameraOff={isCameraOff}
-              />
-            </div>
+          </div>
+
+          {/* Candidate PiP */}
+          <div className="absolute bottom-4 right-4 z-20">
+            <CandidateTile
+              ref={candidateVideoRef}
+              isMuted={isMuted}
+              isCameraOff={isCameraOff}
+            />
           </div>
         </div>
 
-        <audio
-          ref={avatarAudioRef}
-          autoPlay
-          playsInline
-          className="hidden"
-        />
+        {/* Hidden audio */}
+        <audio ref={avatarAudioRef} autoPlay playsInline className="hidden" />
       </div>
 
-      {/* Controls bar */}
-      <div className="px-6 py-4 bg-gray-900/80 backdrop-blur-sm border-t border-gray-800">
+      {/* ── Controls Bar ────────────────────────────────────────────────────── */}
+      <div className="relative z-10 px-6 py-4 bg-white/[0.03] backdrop-blur-xl border-t border-white/[0.06]">
         <SessionControls
           isMuted={isMuted}
           isCameraOff={isCameraOff}
