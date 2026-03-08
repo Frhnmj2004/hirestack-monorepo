@@ -320,6 +320,8 @@ export interface RealtimeCallbacks {
   /** Called periodically with tab audio level info: rms, hasContent, consecutiveSilentChunks. Use for debugging silent tab capture. */
   onTabAudioLevel?: (rms: number, hasContent: boolean, consecutiveSilent: number) => void;
   onTranscript?: (text: string, isFinal: boolean, speaker?: "interviewer" | "candidate") => void;
+  /** Emitted when the speaker finishes an entire utterance (VAD silence detected). Contains the full stitched transcript. */
+  onTurnComplete?: (text: string, speaker: "interviewer" | "candidate") => void;
   onInsights?: (data: {
     keyInsights: string[];
     skillSignals: string[];
@@ -328,6 +330,7 @@ export interface RealtimeCallbacks {
   }, questionId: string) => void;
   onAlerts?: (alerts: AlertItem[]) => void;
   onEvidence?: (cards: EvidenceCard[]) => void;
+  onNewClaims?: (claims: Array<{ claimText: string; predicate?: string; object?: string; confidence?: number }>) => void;
   onScores?: (payload: CompetencyScorePayload) => void;
   onError?: (msg: string) => void;
 }
@@ -472,6 +475,17 @@ export class InterviewRealtimeManager {
 
     this.socket.on("evidence", (data: EvidenceCard[]) => {
       callbacks.onEvidence?.(data);
+    });
+
+    this.socket.on("turn_complete", (data: { text: string; speaker?: "interviewer" | "candidate" }) => {
+      const speaker = data.speaker ?? "candidate";
+      console.log("[HireLens] turn_complete:", speaker, data.text?.slice(0, 80));
+      callbacks.onTurnComplete?.(data.text, speaker);
+    });
+
+    this.socket.on("new_claims", (data: Array<{ claimText: string; predicate?: string; object?: string; confidence?: number }>) => {
+      if (data?.length) console.log("[HireLens] new_claims:", data.length);
+      callbacks.onNewClaims?.(data);
     });
 
     this.socket.on("scores", (data: CompetencyScorePayload) => {

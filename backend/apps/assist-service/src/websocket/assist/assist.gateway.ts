@@ -69,6 +69,8 @@ export class AssistGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.emit('transcript', { text, isFinal, speaker: 'candidate' });
       },
       onTurnDone: async (transcript) => {
+        console.log('[AssistGateway] Turn complete — length:', transcript.length, 'preview:', transcript.slice(0, 100));
+        client.emit('turn_complete', { text: transcript, speaker: 'candidate' });
         const q = this.streaming.getActiveQuestion(sessionId);
         try {
           const result = await this.pipeline.processTurn({
@@ -77,6 +79,7 @@ export class AssistGateway implements OnGatewayConnection, OnGatewayDisconnect {
             activeQuestion: q,
             candidateAnswer: transcript,
           });
+          console.log('[AssistGateway] Pipeline done — insights:', result.pipelineA.followUpQuestions?.length ?? 0, 'evidence:', result.pipelineB.evidenceCards?.length ?? 0, 'claims:', result.pipelineB.newClaims?.length ?? 0, 'alerts:', result.pipelineB.contradictions?.length ?? 0);
           client.emit('insights', result.pipelineA);
           client.emit('evidence', result.pipelineB.evidenceCards);
           client.emit('new_claims', result.pipelineB.newClaims);
@@ -84,6 +87,7 @@ export class AssistGateway implements OnGatewayConnection, OnGatewayDisconnect {
             client.emit('alerts', result.pipelineB.contradictions);
           }
         } catch (err) {
+          console.error('[AssistGateway] Pipeline error:', err instanceof Error ? err.message : err);
           client.emit('error', { message: err instanceof Error ? err.message : 'Pipeline failed' });
         }
       },

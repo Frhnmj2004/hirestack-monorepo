@@ -9,7 +9,7 @@ import {
   endAssistSession,
   InterviewRealtimeManager,
 } from "../shared/api";
-import type { InterviewSession, SessionPayload, FollowUpItem } from "../shared/types";
+import type { InterviewSession, SessionPayload, FollowUpItem, EvidenceCard } from "../shared/types";
 import { setDebug, debugLog, getLogEntries, setLogListener, clearLogBuffer } from "../shared/debug";
 import type { LogEntry } from "../shared/debug";
 import contentCss from "./content.css?raw";
@@ -413,33 +413,37 @@ function ContentApp() {
       },
       onTranscript: (text, isFinal, speaker) => {
         const who = speaker ?? "candidate";
-        debugLog("ws", "Transcript received", { speaker: who, text: text.slice(0, 80), isFinal });
-        if (!text.trim() && !isFinal) return;
-        if (isFinal) {
-          setInterimTranscript(null);
-          setSession((prev) => {
-            if (!prev) return prev;
-            const entry = {
-              id: `tx-${Date.now()}`,
-              speaker: who,
-              text: text.trim(),
-              timestamp: new Date().toISOString(),
-            };
-            const transcript = [...prev.transcript, entry];
-            const idx = currentIndexRef.current;
-            const q = prev.questions[idx];
-            if (q && !q.answered) {
-              debugLog("state", "Question marked answered (from transcript)", { questionId: q.id });
-              const questions = prev.questions.map((qu) =>
-                qu.id === q.id ? { ...qu, answered: true } : qu
-              );
-              return { ...prev, transcript, questions };
-            }
-            return { ...prev, transcript };
-          });
-        } else {
-          setInterimTranscript({ speaker: who, text });
-        }
+        debugLog("ws", "Transcript chunk", { speaker: who, text: text.slice(0, 80), isFinal });
+        if (!text.trim()) return;
+        // Show the latest chunk (interim or final) as the live "typing" indicator.
+        // We do NOT commit individual final chunks as separate transcript entries —
+        // the full stitched utterance arrives via turn_complete.
+        setInterimTranscript({ speaker: who, text });
+      },
+      onTurnComplete: (text, speaker) => {
+        const who = speaker ?? "candidate";
+        debugLog("ws", "Turn complete (stitched)", { speaker: who, text: text.slice(0, 120) });
+        setInterimTranscript(null);
+        setSession((prev) => {
+          if (!prev) return prev;
+          const entry = {
+            id: `tx-${Date.now()}`,
+            speaker: who,
+            text: text.trim(),
+            timestamp: new Date().toISOString(),
+          };
+          const transcript = [...prev.transcript, entry];
+          const idx = currentIndexRef.current;
+          const q = prev.questions[idx];
+          if (q && !q.answered) {
+            debugLog("state", "Question marked answered (from turn)", { questionId: q.id });
+            const questions = prev.questions.map((qu) =>
+              qu.id === q.id ? { ...qu, answered: true } : qu
+            );
+            return { ...prev, transcript, questions };
+          }
+          return { ...prev, transcript };
+        });
       },
       onInsights: (data, questionId) => {
         const followUpCount = (data.followUpQuestions?.length ?? 0) + (data.competencyQuestions?.length ?? 0);
@@ -479,9 +483,23 @@ function ContentApp() {
         });
       },
       onEvidence: (cards) => {
+        debugLog("ws", "Evidence cards received", { count: cards?.length ?? 0 });
         setSession((prev) => {
           if (!prev) return prev;
           return { ...prev, evidenceCards: [...prev.evidenceCards, ...cards] };
+        });
+      },
+      onNewClaims: (claims) => {
+        debugLog("ws", "New claims (not in resume)", { count: claims?.length ?? 0, claims: claims?.map((c) => c.claimText?.slice(0, 60)) });
+        setSession((prev) => {
+          if (!prev) return prev;
+          const newCards: EvidenceCard[] = (claims || []).map((c, i) => ({
+            id: `nc-${Date.now()}-${i}`,
+            type: "new_info" as const,
+            resumeSnippet: c.claimText,
+            claimText: c.claimText,
+          }));
+          return { ...prev, evidenceCards: [...prev.evidenceCards, ...newCards] };
         });
       },
       onScores: (payload) => {

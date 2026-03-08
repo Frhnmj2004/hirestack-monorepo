@@ -889,6 +889,21 @@ function InsightsPanel({ session, currentIndex }: { session: InterviewSession; c
         </div>
       )}
 
+      {session.evidenceCards.length > 0 && (
+        <div className="hl-sb__section-block">
+          <p className="hl-sb__block-title">Evidence Cards</p>
+          <p className="hl-sb__dim" style={{ marginBottom: 8 }}>Resume matches and new claims detected from the candidate's answers.</p>
+          {session.evidenceCards.map((card, i) => (
+            <div key={card.id ?? `ev-${i}`} className={`hl-sb__evidence-card hl-sb__evidence-card--${card.type}`}>
+              <span className="hl-sb__evidence-type">{card.type === "strong" ? "Strong match" : card.type === "possible" ? "Possible match" : "New information"}</span>
+              {card.claimText && <p className="hl-sb__evidence-claim">{card.claimText}</p>}
+              <p className="hl-sb__evidence-snippet">{card.resumeSnippet}</p>
+              {card.similarity != null && <span className="hl-sb__evidence-sim">{(card.similarity * 100).toFixed(0)}% match</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
       {session.scores.some((s) => s.score > 0) && (
         <div className="hl-sb__section-block">
           <p className="hl-sb__block-title">Competency Scores</p>

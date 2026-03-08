@@ -1725,3 +1725,45 @@
   letter-spacing: 0.06em;
   white-space: nowrap;
 }
+
+/* Evidence Cards */
+.hl-sb__evidence-card {
+  padding: 10px 14px;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.hl-sb__evidence-card--strong { border-left: 3px solid rgba(52, 199, 89, 0.7); }
+.hl-sb__evidence-card--possible { border-left: 3px solid rgba(255, 214, 10, 0.7); }
+.hl-sb__evidence-card--new_info { border-left: 3px solid rgba(10, 132, 255, 0.7); }
+.hl-sb__evidence-type {
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.35);
+  display: block;
+  margin-bottom: 4px;
+}
+.hl-sb__evidence-card--strong .hl-sb__evidence-type { color: rgba(52, 199, 89, 0.8); }
+.hl-sb__evidence-card--possible .hl-sb__evidence-type { color: rgba(255, 214, 10, 0.8); }
+.hl-sb__evidence-card--new_info .hl-sb__evidence-type { color: rgba(10, 132, 255, 0.8); }
+.hl-sb__evidence-claim {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+.hl-sb__evidence-snippet {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin: 0;
+  font-style: italic;
+}
+.hl-sb__evidence-sim {
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 4px;
+  display: inline-block;
+}

@@ -30,8 +30,25 @@ export class PipelineService {
     private readonly prisma: PrismaService,
   ) {}
 
+  // #region agent log
+  private pipelineLog(msg: string, data: Record<string, unknown>) {
+    try {
+      const line = JSON.stringify({ sessionId: '104cc8', runId: 'pipeline', hypothesisId: 'H2', location: 'pipeline.service.ts', message: msg, data, timestamp: Date.now() }) + '\n';
+      const fs = require('fs'), path = require('path');
+      const logPath = path.join(process.cwd(), '.cursor', 'debug-104cc8.log');
+      const dir = path.dirname(logPath);
+      if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+      fs.appendFileSync(logPath, line);
+    } catch (_) {}
+  }
+  // #endregion
+
   async processTurn(input: ProcessTurnInput): Promise<TurnResult> {
     const { sessionId, candidateId, activeQuestion, candidateAnswer } = input;
+
+    // #region agent log
+    this.pipelineLog('processTurn START', { sessionId, candidateId, answerLen: candidateAnswer.length, answerPreview: candidateAnswer.slice(0, 120), activeQuestion: activeQuestion.slice(0, 80) });
+    // #endregion
 
     const [pipelineAResult, pipelineBResult] = await Promise.all([
       this.runPipelineA(activeQuestion, candidateAnswer),
@@ -66,6 +83,20 @@ export class PipelineService {
       });
       alertsCreated.push(alert);
     }
+
+    // #region agent log
+    this.pipelineLog('processTurn DONE', {
+      sessionId,
+      turnId: turn.id,
+      followUps: pipelineAResult.followUpQuestions?.length ?? 0,
+      competencyQs: pipelineAResult.competencyQuestions?.length ?? 0,
+      keyInsights: pipelineAResult.keyInsights?.length ?? 0,
+      evidenceCards: pipelineBResult.evidenceCards?.length ?? 0,
+      newClaims: pipelineBResult.newClaims?.length ?? 0,
+      contradictions: alertsCreated.length,
+      totalClaims: pipelineBResult.allClaims?.length ?? 0,
+    });
+    // #endregion
 
     return {
       turnId: turn.id,
@@ -104,6 +135,9 @@ export class PipelineService {
     allClaims: ClaimDto[];
   }> {
     const claims = await this.analysis.extractClaims(candidateAnswer);
+    // #region agent log
+    this.pipelineLog('pipelineB: claims extracted', { claimCount: claims.length, claims: claims.map(c => ({ text: c.claimText?.slice(0, 60), pred: c.predicate, obj: c.object })) });
+    // #endregion
     const evidenceCards: EvidenceCardDto[] = [];
     const newClaims: ClaimDto[] = [];
     const contradictions: Array<{
@@ -148,6 +182,16 @@ export class PipelineService {
         );
         evidenceCards.push(...cards);
         if (cards.length === 0) newClaims.push(claim);
+
+        // Store new claim in knowledge graph so future answers can be cross-checked
+        if (claim.predicate) {
+          try {
+            await this.knowledge.storeFact(candidateId, claim.predicate, claim.object ?? claim.claimText, {
+              confidence: claim.confidence,
+              source: 'interview',
+            });
+          } catch (_) { /* best-effort — don't fail the pipeline */ }
+        }
       }
     }
 
