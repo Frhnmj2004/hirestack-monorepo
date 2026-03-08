@@ -26,6 +26,17 @@ const ROOT_ID = "hirelens-copilot-root";
 
 const store = chrome.storage.local;
 
+// Suppress known unhandled rejection from Google Meet's page scripts (vendor.js)
+if (typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (event) => {
+    const msg = event.reason?.message ?? String(event.reason ?? "");
+    if (msg.includes("No Listener: tabs:outgoing") || msg.includes("tabs:outgoing.message.ready")) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  });
+}
+
 function isContextInvalidatedError(err: unknown): boolean {
   return err instanceof Error && String(err.message).includes("Extension context invalidated");
 }
@@ -115,6 +126,7 @@ function ContentApp() {
   const [micToast, setMicToast] = useState(false);
   const [contextInvalidated, setContextInvalidated] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarVisible, setSidebarVisible] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState<{ speaker: "candidate" | "interviewer"; text: string } | null>(null);
   const captureActiveRef = useRef(false);
   const wsManager = useRef(new InterviewRealtimeManager());
@@ -130,6 +142,7 @@ function ContentApp() {
     setSession(payload.session);
     setCurrentIndex(payload.session.currentQuestionIndex ?? 0);
     setDurationSeconds(payload.session.durationSeconds ?? 0);
+    setSidebarVisible(true);
   }
 
   function clearSession() {
@@ -137,6 +150,7 @@ function ContentApp() {
     setSession(null);
     setDurationSeconds(0);
     setCurrentIndex(0);
+    setSidebarVisible(false);
   }
 
   // ── 0. Debug mode from storage (console + red debug panel) ───────────────────
@@ -194,6 +208,29 @@ function ContentApp() {
           if (payload?.session) {
             applySession(payload);
             debugLog("state", "Session loaded from storage", { sessionId: payload.session.sessionId });
+            // Auto-reconnect WS if interview was in progress (e.g. page reload mid-interview).
+            if (payload.session.interviewStarted) {
+              connectRealtime(payload.session);
+              captureActiveRef.current = false;
+              setMicStatus("pending");
+              chrome.runtime.sendMessage({ type: "HIRELENS_START_TAB_CAPTURE", sessionId: payload.session.sessionId })
+                .then((resp: { ok?: boolean; error?: string }) => {
+                  if (resp?.error) {
+                    setMicStatus("error");
+                    setMicError("Audio capture failed. Reload the page to try again.");
+                    setMicToast(true);
+                    return;
+                  }
+                  captureActiveRef.current = true;
+                  setMicStatus("ok");
+                  setMicError(null);
+                })
+                .catch(() => {
+                  setMicStatus("error");
+                  setMicError("Audio capture failed. Reload the page to try again.");
+                  setMicToast(true);
+                });
+            }
           }
         } catch (e) {
           if (isContextInvalidatedError(e)) handleContextInvalidated();
@@ -256,10 +293,11 @@ function ContentApp() {
       msg: {
         type: string;
         payload?: SessionPayload;
+        sessionId?: string;
         chunk?: string;
         encoding?: string;
         chunkCount?: number;
-        sessionId?: string;
+        error?: string;
       },
       _sender: chrome.runtime.MessageSender,
       sendResponse: (r?: unknown) => void
@@ -277,13 +315,15 @@ function ContentApp() {
           clearSession();
           sendResponse({ ok: true });
         } else if (msg.type === "HIRELENS_PING") {
-          sendResponse({ ok: true, hasSession: !!sessionRef.current });
+          sendResponse({
+            ok: true,
+            hasSession: !!sessionRef.current,
+          });
         } else if (msg.type === "HL_TAB_AUDIO_CHUNK") {
-          // Audio chunk forwarded from offscreen document via background → content → WebSocket
+          // Audio chunk from offscreen doc via background → send to WebSocket
           if (msg.chunk && msg.encoding) {
             wsManager.current.sendEncodedChunk(msg.chunk, msg.encoding, msg.chunkCount ?? 0);
           }
-          // Fire-and-forget, no sendResponse needed
           return false;
         } else {
           sendResponse({ ok: false });
@@ -308,9 +348,9 @@ function ContentApp() {
 
   // ── 5. Sidebar margin (expanded vs collapsed) ────────────────────────────────
   useEffect(() => {
-    applyMeetShrink(true, sidebarCollapsed);
+    applyMeetShrink(sidebarVisible, sidebarCollapsed);
     return () => applyMeetShrink(false);
-  }, [sidebarCollapsed]);
+  }, [sidebarCollapsed, sidebarVisible]);
 
   // ── 6. Interview timer ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -522,41 +562,30 @@ function ContentApp() {
       }
       connectRealtime(updated);
 
-      // Ask background to start tab capture via offscreen document.
-      // Background calls getMediaStreamId → creates offscreen doc → offscreen captures audio
-      // → background forwards HL_AUDIO_CHUNK → we receive HL_TAB_AUDIO_CHUNK and send to WS.
-      captureActiveRef.current = true;
+      // Request tab capture stream ID from background service worker.
+      // Background calls getMediaStreamId with consumerTabId so content script can use getUserMedia.
+      captureActiveRef.current = false;
       setMicStatus("pending");
-      debugLog("audio", "Requesting tab audio capture via offscreen document", { sessionId: updated.sessionId });
-
-      // #region agent log
-      fetch('http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'104cc8'},body:JSON.stringify({sessionId:'104cc8',location:'content/index.tsx:handleStartInterview',message:'Sending HIRELENS_START_TAB_CAPTURE to background',data:{sessionId:updated.sessionId},timestamp:Date.now(),hypothesisId:'CONTENT-START'})}).catch(()=>{});
-      // #endregion
-
-      chrome.runtime.sendMessage(
-        { type: "HIRELENS_START_TAB_CAPTURE", sessionId: updated.sessionId },
-        (response: { ok?: boolean; error?: string } | undefined) => {
-          if (chrome.runtime.lastError || response?.error) {
-            const errMsg = chrome.runtime.lastError?.message ?? response?.error ?? "Tab capture failed";
-            console.error("[HireLens] Tab capture failed:", errMsg);
+      debugLog("audio", "Requesting tab capture stream from background", { sessionId: updated.sessionId });
+      chrome.runtime.sendMessage({ type: "HIRELENS_START_TAB_CAPTURE", sessionId: updated.sessionId })
+        .then((resp: { ok?: boolean; error?: string }) => {
+          if (resp?.error) {
             setMicStatus("error");
-            setMicError(`Tab audio capture failed: ${errMsg}`);
+            setMicError(`Audio capture failed: ${resp.error}`);
             setMicToast(true);
-            debugLog("error", "Tab capture request failed", { error: errMsg });
-            // #region agent log
-            fetch('http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'104cc8'},body:JSON.stringify({sessionId:'104cc8',location:'content/index.tsx:HIRELENS_START_TAB_CAPTURE callback',message:'Tab capture request FAILED',data:{error:errMsg},timestamp:Date.now(),hypothesisId:'CONTENT-START'})}).catch(()=>{});
-            // #endregion
-          } else {
-            setMicStatus("ok");
-            setMicError(null);
-            setMicToast(false);
-            debugLog("audio", "Tab audio capture started via offscreen document", { sessionId: updated.sessionId });
-            // #region agent log
-            fetch('http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'104cc8'},body:JSON.stringify({sessionId:'104cc8',location:'content/index.tsx:HIRELENS_START_TAB_CAPTURE callback',message:'Tab capture started OK',data:{sessionId:updated.sessionId},timestamp:Date.now(),hypothesisId:'CONTENT-START'})}).catch(()=>{});
-            // #endregion
+            return;
           }
-        }
-      );
+          captureActiveRef.current = true;
+          setMicStatus("ok");
+          setMicError(null);
+          setMicToast(false);
+          debugLog("audio", "Tab audio capture started via offscreen doc", { sessionId: updated.sessionId });
+        })
+        .catch((e: Error) => {
+          setMicStatus("error");
+          setMicError(`Tab capture failed: ${e.message}`);
+          setMicToast(true);
+        });
 
       if (q) wsManager.current.setActiveQuestion(updated.sessionId, q.id, q.text);
     } catch (e) {
@@ -690,19 +719,52 @@ function ContentApp() {
           </div>
         </div>
       )}
-      <RightSidebar
-        session={session}
-        currentIndex={currentIndex}
-        durationSeconds={durationSeconds}
-        collapsed={sidebarCollapsed}
-        onCollapse={() => setSidebarCollapsed(true)}
-        onExpand={() => setSidebarCollapsed(false)}
-        onClose={handleClose}
-        onSelectQuestion={handleSelectQuestion}
-        onMarkAnswered={handleMarkAnswered}
-        onStartInterview={handleStartInterview}
-        onSessionCreated={handleSessionCreated}
-      />
+      {/* Floating toggle button — shows when sidebar is hidden */}
+      {!sidebarVisible && (
+        <button
+          type="button"
+          title="Open HireLens Copilot"
+          onClick={() => setSidebarVisible(true)}
+          style={{
+            position: "fixed",
+            right: 0,
+            top: "50%",
+            transform: "translateY(-50%)",
+            zIndex: 2147483644,
+            pointerEvents: "auto",
+            width: 36,
+            height: 56,
+            borderRadius: "8px 0 0 8px",
+            background: "rgba(0,122,255,0.92)",
+            border: "1px solid rgba(0,122,255,0.4)",
+            borderRight: "none",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "-2px 0 12px rgba(0,122,255,0.3)",
+          }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+      )}
+      {sidebarVisible && (
+        <RightSidebar
+          session={session}
+          currentIndex={currentIndex}
+          durationSeconds={durationSeconds}
+          collapsed={sidebarCollapsed}
+          onCollapse={() => setSidebarCollapsed(true)}
+          onExpand={() => setSidebarCollapsed(false)}
+          onClose={handleClose}
+          onSelectQuestion={handleSelectQuestion}
+          onMarkAnswered={handleMarkAnswered}
+          onStartInterview={handleStartInterview}
+          onSessionCreated={handleSessionCreated}
+        />
+      )}
     </>
   );
 }

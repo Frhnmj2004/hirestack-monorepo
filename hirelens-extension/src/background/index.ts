@@ -3,14 +3,11 @@
  *
  * Responsibilities:
  *  1. Notify tabs when extension reloads
- *  2. Manage the offscreen document for tab audio capture
- *     - Gets stream ID via chrome.tabCapture.getMediaStreamId (Chrome 116+, no invocation needed)
- *     - Creates offscreen document with USER_MEDIA reason
- *     - Passes stream ID to offscreen doc
- *     - Forwards audio chunks from offscreen → content script (which sends to WebSocket)
+ *  2. Tab audio capture: get stream ID via chrome.tabCapture.getMediaStreamId with
+ *     consumerTabId so the content script can call getUserMedia to get real WebRTC audio.
  */
 
-// Track which tab we are capturing so we can route audio chunks back to it
+// Track which tab we are capturing
 let captureTabId: number | null = null;
 
 // ── Extension reload notification ─────────────────────────────────────────────
@@ -25,16 +22,14 @@ chrome.tabs.query({}, (tabs) => {
 // ── Offscreen document management ────────────────────────────────────────────
 
 async function ensureOffscreenDocument(): Promise<void> {
-  // Check if an offscreen document already exists
   try {
     const contexts = await (chrome.offscreen as any).getContexts({
       documentUrls: [chrome.runtime.getURL("offscreen.html")],
     });
-    if (contexts && contexts.length > 0) return; // already exists
+    if (contexts && contexts.length > 0) return;
   } catch {
     // getContexts not available in older Chrome, proceed to create
   }
-
   await (chrome.offscreen as any).createDocument({
     url: chrome.runtime.getURL("offscreen.html"),
     reasons: ["USER_MEDIA"],
@@ -57,6 +52,7 @@ chrome.runtime.onMessage.addListener(
     msg: {
       type: string;
       sessionId?: string;
+      streamId?: string;
       chunk?: string;
       encoding?: string;
       chunkCount?: number;
@@ -70,9 +66,10 @@ chrome.runtime.onMessage.addListener(
       return true;
     }
 
-    // ── Start tab audio capture via offscreen document ────────────────────────
+    // ── Start tab audio capture via offscreen document ───────────────────────
     // Called by content script when the interview starts.
-    // Service workers CAN call getMediaStreamId without user invocation since Chrome 116.
+    // Background SW can call getMediaStreamId without user invocation (Chrome 116+).
+    // The offscreen document captures ALL tab audio including Google Meet's WebRTC streams.
     if (msg.type === "HIRELENS_START_TAB_CAPTURE") {
       const tabId = sender.tab?.id;
       const sessionId = msg.sessionId;
@@ -81,73 +78,59 @@ chrome.runtime.onMessage.addListener(
         return true;
       }
       captureTabId = tabId;
+      console.log("[HireLens BG] Getting tab capture stream ID for tab", tabId, "session", sessionId);
 
-      // #region agent log
-      fetch("http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "104cc8" },
-        body: JSON.stringify({
-          sessionId: "104cc8",
-          runId: "bg-capture",
-          hypothesisId: "BG-CAPTURE",
-          location: "background/index.ts:HIRELENS_START_TAB_CAPTURE",
-          message: "Requesting tab capture stream ID",
-          data: { tabId, sessionId },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-      // #endregion
-
-      // Get stream ID — no consumerTabId means it can be used in extension contexts (offscreen)
-      chrome.tabCapture.getMediaStreamId(
-        { targetTabId: tabId },
-        async (streamId: string) => {
-          if (chrome.runtime.lastError || !streamId) {
-            const errMsg = chrome.runtime.lastError?.message ?? "getMediaStreamId failed";
-            console.error("[HireLens BG] tabCapture.getMediaStreamId error:", errMsg);
-            sendResponse({ error: errMsg });
-            return;
-          }
-
-          // #region agent log
-          fetch("http://127.0.0.1:7915/ingest/dd54c4a1-1460-43df-87cd-c42e5e8f10a8", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "104cc8" },
-            body: JSON.stringify({
-              sessionId: "104cc8",
-              runId: "bg-capture",
-              hypothesisId: "BG-STREAM-ID",
-              location: "background/index.ts:getMediaStreamId callback",
-              message: "Got stream ID, creating offscreen document",
-              data: { streamIdPrefix: streamId.slice(0, 20), sessionId },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-          // #endregion
-
-          try {
-            await ensureOffscreenDocument();
-
-            // Send stream ID + session to offscreen document
-            await chrome.runtime.sendMessage({
-              type: "HL_OFFSCREEN_START",
-              streamId,
-              sessionId,
-            });
-
-            sendResponse({ ok: true });
-          } catch (e) {
-            console.error("[HireLens BG] Failed to start offscreen capture:", e);
-            sendResponse({ error: String(e) });
-          }
+      const startCapture = async (retry = false): Promise<void> => {
+        // Release any existing tab capture first so getMediaStreamId doesn't see "active stream"
+        if (!retry) {
+          await closeOffscreenDocument();
         }
-      );
+        chrome.tabCapture.getMediaStreamId(
+          { targetTabId: tabId },
+          async (streamId: string) => {
+            if (chrome.runtime.lastError || !streamId) {
+              const errMsg = chrome.runtime.lastError?.message ?? "getMediaStreamId failed";
+              console.error("[HireLens BG] tabCapture.getMediaStreamId error:", errMsg);
+              if (!retry && /active stream|cannot capture/i.test(errMsg)) {
+                console.log("[HireLens BG] Active stream detected — closing offscreen and retrying…");
+                await closeOffscreenDocument();
+                setTimeout(() => {
+                  captureTabId = tabId;
+                  startCapture(true);
+                }, 600);
+                return;
+              }
+              sendResponse({ error: errMsg });
+              return;
+            }
+            console.log("[HireLens BG] Stream ID obtained, starting offscreen capture for session:", sessionId);
+            try {
+              await ensureOffscreenDocument();
+              const offscreenResponse = (await chrome.runtime.sendMessage({
+                type: "HL_OFFSCREEN_START",
+                streamId,
+                sessionId,
+              })) as { ok?: boolean; error?: string } | undefined;
+
+              if (offscreenResponse?.error) {
+                console.error("[HireLens BG] Offscreen start error:", offscreenResponse.error);
+                sendResponse({ error: offscreenResponse.error });
+              } else {
+                sendResponse({ ok: true });
+              }
+            } catch (e) {
+              console.error("[HireLens BG] Failed to start offscreen capture:", e);
+              sendResponse({ error: String(e) });
+            }
+          }
+        );
+      };
+      startCapture();
       return true; // keep message channel open for async sendResponse
     }
 
     // ── Stop tab audio capture ────────────────────────────────────────────────
     if (msg.type === "HIRELENS_STOP_TAB_CAPTURE") {
-      chrome.runtime.sendMessage({ type: "HL_OFFSCREEN_STOP" }).catch(() => {});
       closeOffscreenDocument().catch(() => {});
       captureTabId = null;
       sendResponse({ ok: true });
@@ -155,7 +138,6 @@ chrome.runtime.onMessage.addListener(
     }
 
     // ── Audio chunk forwarding: offscreen → content script ────────────────────
-    // Offscreen sends HL_AUDIO_CHUNK → background forwards → content script → WebSocket
     if (msg.type === "HL_AUDIO_CHUNK") {
       if (captureTabId) {
         chrome.tabs
@@ -168,7 +150,6 @@ chrome.runtime.onMessage.addListener(
           })
           .catch(() => {});
       }
-      // No sendResponse needed for fire-and-forget audio chunks
       return false;
     }
 

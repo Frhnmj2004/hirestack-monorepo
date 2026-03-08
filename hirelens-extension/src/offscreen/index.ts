@@ -80,20 +80,13 @@ async function startCapture(streamId: string, sessionId: string): Promise<void> 
   micStream = stream as MediaStream;
   audioCtx = new AudioContext({ sampleRate: 16000 });
 
-  // Load AudioWorklet from extension resources
-  const processorUrl = chrome.runtime.getURL("audio-worklet-processor.js");
-  const script = await fetch(processorUrl).then((r) => r.text());
-  const blob = new Blob([script], { type: "application/javascript" });
-  const workletUrl = URL.createObjectURL(blob);
-  try {
-    await audioCtx.audioWorklet.addModule(workletUrl);
-  } finally {
-    URL.revokeObjectURL(workletUrl);
-  }
+  // Load AudioWorklet directly from extension origin — offscreen doc runs at chrome-extension://
+  // so chrome.runtime.getURL() is same-origin with the AudioContext; no blob URL needed.
+  await audioCtx.audioWorklet.addModule(chrome.runtime.getURL("audio-worklet-processor.js"));
 
   const source = audioCtx.createMediaStreamSource(micStream);
   const gainNode = audioCtx.createGain();
-  gainNode.gain.value = 3.0; // mild boost
+  gainNode.gain.value = 1.0;
   const node = new AudioWorkletNode(audioCtx, "capture-processor");
   workletNode = node;
 

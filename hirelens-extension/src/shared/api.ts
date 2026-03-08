@@ -579,13 +579,13 @@ export class InterviewRealtimeManager {
 
     const source = this.audioCtx.createMediaStreamSource(this.micStream);
     const gainNode = this.audioCtx.createGain();
-    gainNode.gain.value = 5.0;
+    gainNode.gain.value = 1.0;
     const node = new AudioWorkletNode(this.audioCtx, "capture-processor");
     this.workletNode = node;
 
     source.connect(gainNode);
     gainNode.connect(node);
-    node.connect(this.audioCtx.destination);
+    // Do NOT connect to destination — we only want to process audio for STT, not play it back.
 
     node.port.onmessage = (e: MessageEvent<{ samples: Float32Array }>) => {
       const samples = e.data?.samples;

@@ -7,6 +7,30 @@ Format: `[version] YYYY-MM-DD — summary`
 
 ## [Unreleased] — 2026-03-07
 
+### Extension: CSP + Offscreen tab audio + error handling (2026-03-07)
+
+#### Content Security Policy (CSP) — worklet loading
+- **Issue**: `Loading the script 'blob:chrome-extension://...' violates the following Content Security Policy directive: "script-src 'self'"` in `offscreen.html`. The offscreen document loads the AudioWorklet by fetching the processor script and passing a blob URL to `audioWorklet.addModule(workletUrl)`. Chrome treats that as loading a script from a `blob:` URL, which was blocked by the default `script-src 'self'`.
+- **Fix**: In `manifest.json`, `content_security_policy.extension_pages` updated from `script-src 'self'` to `script-src 'self' blob:` so that extension pages (including the offscreen document) can load scripts from blob URLs. This allows the AudioWorklet module to load and tab audio capture to start without "[HireLens Offscreen] Start error: Unable to load a worklet's module."
+
+#### Tab capture "active stream" error
+- **Issue**: `tabCapture.getMediaStreamId` can fail with "Cannot capture a tab with an active stream" when the Meet tab is already being captured (e.g. previous session not cleaned up, or another capture active).
+- **Fix**: Content script now shows a dedicated message: "This tab is already being captured. Refresh the Google Meet tab, then try Start Interview again." when the error matches "active stream" / "cannot capture". No code change to the capture flow beyond clearer UX.
+
+#### Offscreen start response forwarding
+- **Issue**: When the offscreen document failed to start (e.g. worklet load failure), the background script ignored its `sendResponse({ ok: false, error })` and still replied `{ ok: true }` to the content script.
+- **Fix**: Background now awaits the offscreen reply from `chrome.runtime.sendMessage(HL_OFFSCREEN_START, ...)` and forwards `{ error: offscreenResponse.error }` to the content script when the offscreen reports failure. Content script shows a user-friendly message for worklet/CSP-related errors: "Audio worklet failed to load. Reload the HireLens extension (chrome://extensions) and try again."
+
+#### Tab audio via offscreen document (existing flow, documented)
+- Tab audio is captured in an **offscreen document** (extension origin), not in the content script (page origin). Flow: content script sends `HIRELENS_START_TAB_CAPTURE` → background gets `getMediaStreamId` → creates offscreen doc → offscreen uses `getUserMedia({ chromeMediaSource: 'tab', chromeMediaSourceId: streamId })` and AudioWorklet → sends `HL_AUDIO_CHUNK` → background forwards to content script as `HL_TAB_AUDIO_CHUNK` → content sends to backend WebSocket. This avoids the content-script origin limitation where tab capture returned silent audio.
+
+#### Other recent extension changes (for context)
+- **Sidebar collapse**: Right sidebar can be collapsed via close icon to a small button; clicking the button reopens the sidebar.
+- **Extension context invalidation**: On extension reload, content script shows a banner and avoids using invalidated `chrome.*` APIs; background notifies tabs via `HIRELENS_EXTENSION_RELOADED`.
+- **Audio pipeline**: Replaced deprecated `ScriptProcessorNode` with `AudioWorkletNode`; audio worklet processor in `public/audio-worklet-processor.js` (stereo→mono, 16 kHz). Backend uses Deepgram STT with buffering until socket is ready to avoid "Socket is not open" errors.
+
+---
+
 ### Backend fix (interview creation 500)
 
 - **"Failed to create interview. Check the backend is running."** — The 500 on `POST /interviews` was caused by the assist-service storing knowledge triples with a numeric `object` (e.g. `api_requests_per_day: 2000000`) while the DB column expects a string. Fixed in backend: `KnowledgeService.storeFact()` now coerces `object` to string; `AnalysisService.extractClaims()` normalizes LLM output to string. Date-range contradiction detection in the knowledge graph (previously stubs) is now implemented so timeline contradictions (e.g. "worked at Acme in 2018" when resume says 2019–2023) are detected.
