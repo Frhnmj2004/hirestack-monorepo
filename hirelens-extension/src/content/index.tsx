@@ -9,7 +9,7 @@ import {
   endAssistSession,
   InterviewRealtimeManager,
 } from "../shared/api";
-import type { InterviewSession, SessionPayload, FollowUpItem, EvidenceCard } from "../shared/types";
+import type { InterviewSession, SessionPayload, FollowUpItem, FollowUpType, EvidenceCard, ExtractedTopic, AnswerScore } from "../shared/types";
 import { setDebug, debugLog, getLogEntries, setLogListener, clearLogBuffer } from "../shared/debug";
 import type { LogEntry } from "../shared/debug";
 import contentCss from "./content.css?raw";
@@ -446,8 +446,9 @@ function ContentApp() {
         });
       },
       onInsights: (data, questionId) => {
+        const topicCount = data.extractedTopics?.length ?? 0;
         const followUpCount = (data.followUpQuestions?.length ?? 0) + (data.competencyQuestions?.length ?? 0);
-        debugLog("ws", followUpCount > 0 ? "Insights received (follow-ups)" : "Insights received (no follow-ups)", { questionId, followUpCount, keyInsights: (data.keyInsights?.length ?? 0) });
+        debugLog("ws", `Insights: ${topicCount} topics, ${followUpCount} follow-ups, score: ${data.answerScore?.overall ?? "-"}`, { questionId, topicCount, followUpCount, keyInsights: (data.keyInsights?.length ?? 0), score: data.answerScore?.overall });
         const followUps: FollowUpItem[] = [
           ...(data.followUpQuestions || []).map((f, i) => ({
             id: `fu-${Date.now()}-${i}`,
@@ -462,13 +463,32 @@ function ContentApp() {
             questionId,
           })),
         ];
+        const newTopics: ExtractedTopic[] = (data.extractedTopics || []).map((t, i) => ({
+          id: `et-${Date.now()}-${i}`,
+          topic: t.topic,
+          reason: t.reason,
+          followUpQuestions: (t.followUpQuestions || []).map((q) => ({
+            question: q.question,
+            type: (q.type === "competency" ? "competency" : "follow_up") as FollowUpType,
+          })),
+          questionId,
+        }));
+        const newScore: AnswerScore | undefined = data.answerScore ? {
+          relevance: data.answerScore.relevance,
+          depth: data.answerScore.depth,
+          specificity: data.answerScore.specificity,
+          overall: data.answerScore.overall,
+          feedback: data.answerScore.feedback,
+        } : undefined;
         setSession((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
             followUps: [...prev.followUps, ...followUps],
+            extractedTopics: [...prev.extractedTopics, ...newTopics],
             insights: [...prev.insights, ...(data.keyInsights || [])],
             skillSignals: [...new Set([...prev.skillSignals, ...(data.skillSignals || [])])],
+            answerScores: newScore ? [...prev.answerScores, newScore] : prev.answerScores,
           };
         });
       },
@@ -669,9 +689,6 @@ function ContentApp() {
   const currentQuestion = session?.questions[currentIndex];
   const answeredCount = session?.questions.filter((q) => q.answered).length ?? 0;
   const totalQuestions = session?.questions.length ?? 0;
-  const followUpsForCurrent = currentQuestion
-    ? (session?.followUps ?? []).filter((f) => f.questionId === currentQuestion.id)
-    : [];
 
   if (contextInvalidated) {
     return <ContextInvalidatedBanner />;
@@ -706,7 +723,8 @@ function ContentApp() {
           answeredCount={answeredCount}
           answeredByIndex={session.questions.map((q) => q.answered)}
           alertCount={session.alerts.length}
-          followUps={followUpsForCurrent}
+          extractedTopics={session.extractedTopics}
+          answerScore={session.answerScores[session.answerScores.length - 1]}
           onAskFollowUp={(text) => pushInterviewerQuestion(text)}
           onNext={handleNextQuestion}
           onPrev={handlePrevQuestion}

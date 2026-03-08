@@ -1726,6 +1726,50 @@
   white-space: nowrap;
 }
 
+/* Topic Cards (Insights Panel) */
+.hl-sb__topics-list { display: flex; flex-direction: column; gap: 6px; }
+.hl-sb__topic-card {
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.hl-sb__topic-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.hl-sb__topic-header:hover { background: rgba(255, 255, 255, 0.04); }
+.hl-sb__topic-header--open { background: rgba(0, 122, 255, 0.08); }
+.hl-sb__topic-name { flex: 1; }
+.hl-sb__topic-count {
+  font-size: 0.6rem;
+  background: rgba(0, 122, 255, 0.2);
+  color: #5ac8fa;
+  padding: 1px 7px;
+  border-radius: 100px;
+  font-weight: 700;
+}
+.hl-sb__topic-chevron { font-size: 0.55rem; color: rgba(255, 255, 255, 0.3); }
+.hl-sb__topic-reason {
+  font-size: 0.63rem;
+  color: rgba(255, 255, 255, 0.35);
+  padding: 0 14px 8px;
+  font-style: italic;
+  margin: 0;
+}
+.hl-sb__topic-questions { padding: 4px 14px 10px; }
+.hl-sb__score-grid { display: flex; flex-direction: column; gap: 6px; }
+
 /* Evidence Cards */
 .hl-sb__evidence-card {
   padding: 10px 14px;

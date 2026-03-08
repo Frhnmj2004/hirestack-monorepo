@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { FollowUpItem } from "../../shared/types";
+import type { FollowUpItem, ExtractedTopic, AnswerScore } from "../../shared/types";
 import "./DynamicIsland.css";
 
 interface DynamicIslandProps {
@@ -9,19 +9,17 @@ interface DynamicIslandProps {
   questionIndex: number;
   totalQuestions: number;
   answeredCount?: number;
-  /** Whether each question index (0-based) is answered — used for dot progress */
   answeredByIndex?: boolean[];
   alertCount?: number;
-  /** Follow-ups for the current question — shown in expandable "Follow-up topics" */
   followUps?: FollowUpItem[];
+  extractedTopics?: ExtractedTopic[];
+  answerScore?: AnswerScore;
   onAskFollowUp?: (questionText: string) => void;
   onNext: () => void;
   onPrev: () => void;
   canNext: boolean;
   canPrev: boolean;
 }
-
-const TOPIC_LABEL: Record<string, string> = { competency: "Competency", follow_up: "Follow-up" };
 
 export function DynamicIsland({
   question,
@@ -32,7 +30,8 @@ export function DynamicIsland({
   answeredCount = 0,
   answeredByIndex = [],
   alertCount = 0,
-  followUps = [],
+  extractedTopics = [],
+  answerScore,
   onAskFollowUp,
   onNext,
   onPrev,
@@ -41,30 +40,16 @@ export function DynamicIsland({
 }: DynamicIslandProps) {
   const [expanded, setExpanded] = useState(true);
   const [followUpTopicsOpen, setFollowUpTopicsOpen] = useState(false);
-  const [expandedTopic, setExpandedTopic] = useState<Set<string>>(new Set(["competency", "follow_up"]));
+  const [openTopicId, setOpenTopicId] = useState<string | null>(null);
 
-  const byTopic = followUps.reduce<Record<string, FollowUpItem[]>>((acc, f) => {
-    const t = f.type || "follow_up";
-    if (!acc[t]) acc[t] = [];
-    acc[t].push(f);
-    return acc;
-  }, {});
-  const topicKeys = Object.keys(byTopic);
-  const hasFollowUps = followUps.length > 0;
-
-  const toggleTopic = (key: string) => {
-    setExpandedTopic((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
+  const currentQuestionTopics = extractedTopics.filter(
+    (t) => t.questionId === `q-${questionIndex}` || extractedTopics.length > 0
+  );
+  const topicCount = currentQuestionTopics.length;
 
   return (
     <div className="hl-di-wrapper">
       <div className={`hl-di ${expanded ? "hl-di--expanded" : "hl-di--pill"}`}>
-        {/* Collapsed pill */}
         {!expanded && (
           <button
             type="button"
@@ -83,7 +68,6 @@ export function DynamicIsland({
           </button>
         )}
 
-        {/* Expanded card */}
         {expanded && (
           <div className="hl-di__body">
             <div className="hl-di__top">
@@ -104,40 +88,61 @@ export function DynamicIsland({
 
             <p className="hl-di__question">{question}</p>
 
+            {answerScore && (
+              <div className="hl-di__score-bar">
+                <div className="hl-di__score-row">
+                  <span className="hl-di__score-label">Answer</span>
+                  <div className="hl-di__score-track">
+                    <div className="hl-di__score-fill" style={{ width: `${(answerScore.overall / 10) * 100}%` }} />
+                  </div>
+                  <span className="hl-di__score-num">{answerScore.overall}/10</span>
+                </div>
+                {answerScore.feedback && (
+                  <p className="hl-di__score-feedback">{answerScore.feedback}</p>
+                )}
+              </div>
+            )}
+
             <div className="hl-di__followups">
-                <button
-                  type="button"
-                  className="hl-di__followups-toggle"
-                  onClick={() => setFollowUpTopicsOpen((o) => !o)}
-                  aria-expanded={followUpTopicsOpen}
-                >
-                  <span className="hl-di__followups-toggle-text">
-                    Follow-up topics ({followUps.length})
-                  </span>
-                  <span className="hl-di__followups-chevron">{followUpTopicsOpen ? "▼" : "▶"}</span>
-                </button>
-                {followUpTopicsOpen && (
-                  <div className="hl-di__followups-body">
-                    {!hasFollowUps ? (
-                      <p className="hl-di__followups-empty">
-                        No follow-ups yet. Backend sends these after each candidate answer (insights event). Speak and wait for the pipeline to return follow-ups.
-                      </p>
-                    ) : topicKeys.map((topicKey) => (
-                      <div key={topicKey} className="hl-di__followup-topic">
+              <button
+                type="button"
+                className="hl-di__followups-toggle"
+                onClick={() => setFollowUpTopicsOpen((o) => !o)}
+                aria-expanded={followUpTopicsOpen}
+              >
+                <span className="hl-di__followups-toggle-text">
+                  Follow-up topics ({topicCount})
+                </span>
+                <span className="hl-di__followups-chevron">{followUpTopicsOpen ? "▼" : "▶"}</span>
+              </button>
+              {followUpTopicsOpen && (
+                <div className="hl-di__followups-body">
+                  {topicCount === 0 ? (
+                    <p className="hl-di__followups-empty">
+                      Topics appear here after the candidate answers. Each topic has specific follow-up questions.
+                    </p>
+                  ) : currentQuestionTopics.map((topic) => {
+                    const isOpen = openTopicId === topic.id;
+                    return (
+                      <div key={topic.id} className="hl-di__followup-topic">
                         <button
                           type="button"
-                          className="hl-di__followup-topic-btn"
-                          onClick={() => toggleTopic(topicKey)}
-                          aria-expanded={expandedTopic.has(topicKey)}
+                          className={`hl-di__followup-topic-btn ${isOpen ? "hl-di__followup-topic-btn--open" : ""}`}
+                          onClick={() => setOpenTopicId(isOpen ? null : topic.id)}
+                          aria-expanded={isOpen}
                         >
-                          <span>{TOPIC_LABEL[topicKey] ?? topicKey}</span>
-                          <span className="hl-di__followup-topic-count">{byTopic[topicKey].length}</span>
-                          <span className="hl-di__followup-chevron">{expandedTopic.has(topicKey) ? "▼" : "▶"}</span>
+                          <span className="hl-di__topic-name">{topic.topic}</span>
+                          <span className="hl-di__followup-topic-count">{topic.followUpQuestions.length}</span>
+                          <span className="hl-di__followup-chevron">{isOpen ? "▼" : "▶"}</span>
                         </button>
-                        {expandedTopic.has(topicKey) && (
+                        {topic.reason && !isOpen && (
+                          <p className="hl-di__topic-reason">{topic.reason}</p>
+                        )}
+                        {isOpen && (
                           <ul className="hl-di__followup-list">
-                            {byTopic[topicKey].map((f) => (
-                              <li key={f.id} className="hl-di__followup-item">
+                            {topic.followUpQuestions.map((f, fi) => (
+                              <li key={fi} className="hl-di__followup-item">
+                                <span className="hl-di__followup-type-tag">{f.type === "competency" ? "Competency" : "Follow-up"}</span>
                                 <p className="hl-di__followup-q">{f.question}</p>
                                 {onAskFollowUp && (
                                   <button
@@ -145,7 +150,7 @@ export function DynamicIsland({
                                     className="hl-di__followup-ask"
                                     onClick={() => onAskFollowUp(f.question)}
                                   >
-                                    Ask follow-up
+                                    Ask
                                   </button>
                                 )}
                               </li>
@@ -153,9 +158,10 @@ export function DynamicIsland({
                           </ul>
                         )}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             <div className="hl-di__bottom">

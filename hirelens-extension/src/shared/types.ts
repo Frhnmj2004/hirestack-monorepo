@@ -32,6 +32,24 @@ export interface FollowUpItem {
   questionId: string;
 }
 
+// ── Extracted topics (from backend ExtractedTopicDto) ────────────────────────
+export interface ExtractedTopic {
+  id: string;
+  topic: string;
+  reason?: string;
+  followUpQuestions: Array<{ question: string; type: FollowUpType }>;
+  questionId: string;
+}
+
+// ── Answer scores (from backend AnswerScoreDto) ─────────────────────────────
+export interface AnswerScore {
+  relevance: number;
+  depth: number;
+  specificity: number;
+  overall: number;
+  feedback: string;
+}
+
 // ── Evidence cards (from backend EvidenceCardDto) ────────────────────────────
 export interface EvidenceCard {
   id: string;
@@ -117,12 +135,14 @@ export interface InterviewSession {
   topics: InterviewTopic[];
   currentQuestionIndex: number;
   followUps: FollowUpItem[];    // for the current active question
+  extractedTopics: ExtractedTopic[]; // topic-grouped follow-ups from answer analysis
   alerts: AlertItem[];          // live feed
   transcript: TranscriptEntry[];
   insights: string[];           // keyInsights from pipelineA
   skillSignals: string[];       // skillSignals from pipelineA
   evidenceCards: EvidenceCard[];
   scores: CompetencyScore[];
+  answerScores: AnswerScore[];  // per-turn answer quality scores
   startedAt: string;            // ISO
   durationSeconds: number;      // ticked by extension timer
   interviewStarted: boolean;    // false = briefing/Tab1, true = active/Tab2

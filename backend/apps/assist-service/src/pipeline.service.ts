@@ -156,6 +156,16 @@ export class PipelineService {
       const compare = compareResults[i];
       if (!compare) continue;
 
+      if (compare.match === 'match' && compare.existingTriple) {
+        evidenceCards.push({
+          type: 'strong',
+          resumeSnippet: `${compare.existingTriple.predicate}: ${compare.existingTriple.object}`,
+          similarity: 1.0,
+          claimText: claim.claimText,
+        });
+        continue;
+      }
+
       if (compare.match === 'contradiction' && compare.existingTriple) {
         const { explanation, suggestedQuestion } = await this.analysis.generateContradictionClarify(
           claim.claimText,

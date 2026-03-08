@@ -14,6 +14,20 @@ export interface FollowUpDto {
   type: 'follow_up' | 'competency';
 }
 
+export interface ExtractedTopicDto {
+  topic: string;
+  reason?: string;
+  followUpQuestions: FollowUpDto[];
+}
+
+export interface AnswerScoreDto {
+  relevance: number;
+  depth: number;
+  specificity: number;
+  overall: number;
+  feedback: string;
+}
+
 export interface EvidenceCardDto {
   type: 'strong' | 'possible' | 'new_info';
   resumeSnippet: string;
@@ -38,6 +52,8 @@ export interface PipelineAResult {
   skillSignals: string[];
   followUpQuestions: FollowUpDto[];
   competencyQuestions: FollowUpDto[];
+  extractedTopics: ExtractedTopicDto[];
+  answerScore?: AnswerScoreDto;
 }
 
 export interface PipelineBResult {

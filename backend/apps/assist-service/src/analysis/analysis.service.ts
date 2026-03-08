@@ -6,7 +6,7 @@ import {
   getContradictionClarifyPrompt,
   getQuestionGenerationPrompt,
 } from '@hirelens/shared-prompts';
-import type { PipelineAResult, ClaimDto } from '@hirelens/shared-types';
+import type { PipelineAResult, ClaimDto, ExtractedTopicDto, AnswerScoreDto } from '@hirelens/shared-types';
 import { withRetry } from '../common/retry.util';
 
 export interface InterviewPlanQuestion {
@@ -92,18 +92,48 @@ export class AnalysisService {
       skillSignals?: string[];
       followUpQuestions?: Array<{ question: string; type: string }>;
       competencyQuestions?: Array<{ question: string; type: string }>;
+      extractedTopics?: Array<{ topic: string; reason?: string; followUpQuestions?: Array<{ question: string; type: string }> }>;
+      answerScore?: { relevance?: number; depth?: number; specificity?: number; overall?: number; feedback?: string };
     };
-    return {
-      keyInsights: Array.isArray(parsed.keyInsights) ? parsed.keyInsights : [],
-      skillSignals: Array.isArray(parsed.skillSignals) ? parsed.skillSignals : [],
-      followUpQuestions: (parsed.followUpQuestions || []).map((q) => ({
+
+    // Build flat follow-up lists from extractedTopics for backward compat
+    const extractedTopics: ExtractedTopicDto[] = (parsed.extractedTopics || []).map((t) => ({
+      topic: t.topic || '',
+      reason: t.reason,
+      followUpQuestions: (t.followUpQuestions || []).map((q) => ({
         question: q.question || '',
         type: (q.type === 'competency' ? 'competency' : 'follow_up') as 'follow_up' | 'competency',
       })),
-      competencyQuestions: (parsed.competencyQuestions || []).map((q) => ({
-        question: q.question || '',
-        type: 'competency' as const,
-      })),
+    }));
+
+    const allFollowUps = extractedTopics.flatMap((t) => t.followUpQuestions.filter((q) => q.type === 'follow_up'));
+    const allCompetency = extractedTopics.flatMap((t) => t.followUpQuestions.filter((q) => q.type === 'competency'));
+
+    // Fall back to legacy flat arrays if extractedTopics is empty
+    const followUpQuestions = allFollowUps.length > 0 ? allFollowUps : (parsed.followUpQuestions || []).map((q) => ({
+      question: q.question || '',
+      type: (q.type === 'competency' ? 'competency' : 'follow_up') as 'follow_up' | 'competency',
+    }));
+    const competencyQuestions = allCompetency.length > 0 ? allCompetency : (parsed.competencyQuestions || []).map((q) => ({
+      question: q.question || '',
+      type: 'competency' as const,
+    }));
+
+    const answerScore: AnswerScoreDto | undefined = parsed.answerScore ? {
+      relevance: typeof parsed.answerScore.relevance === 'number' ? parsed.answerScore.relevance : 0,
+      depth: typeof parsed.answerScore.depth === 'number' ? parsed.answerScore.depth : 0,
+      specificity: typeof parsed.answerScore.specificity === 'number' ? parsed.answerScore.specificity : 0,
+      overall: typeof parsed.answerScore.overall === 'number' ? parsed.answerScore.overall : 0,
+      feedback: parsed.answerScore.feedback || '',
+    } : undefined;
+
+    return {
+      keyInsights: Array.isArray(parsed.keyInsights) ? parsed.keyInsights : [],
+      skillSignals: Array.isArray(parsed.skillSignals) ? parsed.skillSignals : [],
+      followUpQuestions,
+      competencyQuestions,
+      extractedTopics,
+      answerScore,
     };
   }
 

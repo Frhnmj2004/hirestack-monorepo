@@ -3,8 +3,8 @@ import type {
   InterviewSession,
   QuestionItem,
   InterviewTopic,
-  FollowUpItem,
   AlertItem,
+  ExtractedTopic,
 } from "../../shared/types";
 import {
   listInterviews,
@@ -802,72 +802,75 @@ function InterviewPanel({
 
 // ── Tab 3: Insights ───────────────────────────────────────────────────────────
 function InsightsPanel({ session, currentIndex }: { session: InterviewSession; currentIndex: number }) {
+  const [openTopicId, setOpenTopicId] = useState<string | null>(null);
   const currentQ = session.questions[currentIndex];
-  const followUps = session.followUps.filter((f: FollowUpItem) => f.questionId === currentQ?.id);
-
-  const followUpsByTopic = session.followUps.reduce<Record<string, FollowUpItem[]>>((acc, f) => {
-    const q = session.questions.find((qu) => qu.id === f.questionId);
-    const topic = q?.competency ?? "General";
-    if (!acc[topic]) acc[topic] = [];
-    acc[topic].push(f);
-    return acc;
-  }, {});
+  const topics = session.extractedTopics ?? [];
+  const latestScore = session.answerScores?.[session.answerScores.length - 1];
 
   return (
     <div className="hl-sb__panel-content">
-      <div className="hl-sb__section-block">
-        <p className="hl-sb__block-title">
-          Follow-ups
-          {currentQ && <span className="hl-sb__block-subtitle"> — Q{currentIndex + 1}: {currentQ.competency}</span>}
-        </p>
-        {followUps.length === 0 && session.followUps.length === 0 ? (
-          <p className="hl-sb__empty-state">No follow-ups yet. Backend sends these dynamically after each candidate answer (insights event). Ensure the assist-service pipeline is running and the candidate has spoken.</p>
-        ) : followUps.length === 0 ? (
-          <>
-            <p className="hl-sb__empty-state" style={{ marginBottom: 8 }}>No follow-ups for this question yet.</p>
-            <p className="hl-sb__block-title" style={{ marginTop: 12 }}>All generated follow-ups</p>
-            <div className="hl-sb__followup-list">
-              {session.followUps.map((f: FollowUpItem) => (
-                <div key={f.id} className={`hl-sb__followup hl-sb__followup--${f.type}`}>
-                  <span className="hl-sb__followup-type">{f.type === "follow_up" ? "Follow-up" : "Competency probe"}</span>
-                  <p className="hl-sb__followup-text">{f.question}</p>
-                  {f.reason && <span className="hl-sb__followup-reason">{f.reason}</span>}
+      {latestScore && (
+        <div className="hl-sb__section-block">
+          <p className="hl-sb__block-title">Answer Quality</p>
+          <div className="hl-sb__score-grid">
+            {(["relevance", "depth", "specificity", "overall"] as const).map((dim) => (
+              <div key={dim} className="hl-sb__score-row">
+                <span className="hl-sb__score-name">{dim.charAt(0).toUpperCase() + dim.slice(1)}</span>
+                <div className="hl-sb__score-track">
+                  <div className="hl-sb__score-fill" style={{ width: `${(latestScore[dim] / 10) * 100}%` }} />
                 </div>
-              ))}
-            </div>
-          </>
-        ) : (
-          <div className="hl-sb__followup-list">
-            {followUps.map((f: FollowUpItem) => (
-              <div key={f.id} className={`hl-sb__followup hl-sb__followup--${f.type}`}>
-                <span className="hl-sb__followup-type">{f.type === "follow_up" ? "Follow-up" : "Competency probe"}</span>
-                <p className="hl-sb__followup-text">{f.question}</p>
-                {f.reason && <span className="hl-sb__followup-reason">{f.reason}</span>}
+                <span className="hl-sb__score-num">{latestScore[dim].toFixed(0)}</span>
               </div>
             ))}
           </div>
-        )}
-      </div>
-
-      {Object.keys(followUpsByTopic).length > 0 && (
-        <div className="hl-sb__section-block">
-          <p className="hl-sb__block-title">Follow-up topics</p>
-          <p className="hl-sb__dim" style={{ marginBottom: 8 }}>Suggested areas to probe further, by competency</p>
-          {Object.entries(followUpsByTopic).map(([topic, list]) => (
-            <div key={topic} className="hl-sb__followup-topic">
-              <span className="hl-sb__followup-topic-name">{topic}</span>
-              <ul className="hl-sb__followup-topic-list">
-                {list.map((f) => (
-                  <li key={f.id} className={`hl-sb__followup hl-sb__followup--${f.type}`}>
-                    <span className="hl-sb__followup-type">{f.type === "follow_up" ? "Follow-up" : "Competency"}</span>
-                    <p className="hl-sb__followup-text">{f.question}</p>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {latestScore.feedback && (
+            <p className="hl-sb__dim" style={{ marginTop: 6, fontStyle: "italic" }}>{latestScore.feedback}</p>
+          )}
         </div>
       )}
+
+      <div className="hl-sb__section-block">
+        <p className="hl-sb__block-title">
+          Extracted Topics
+          {currentQ && <span className="hl-sb__block-subtitle"> — from candidate answers</span>}
+        </p>
+        <p className="hl-sb__dim" style={{ marginBottom: 8 }}>Topics derived from what the candidate said. Click to see follow-up questions.</p>
+        {topics.length === 0 ? (
+          <p className="hl-sb__empty-state">No topics extracted yet. Topics appear after the candidate answers and the pipeline processes the response.</p>
+        ) : (
+          <div className="hl-sb__topics-list">
+            {topics.map((topic: ExtractedTopic) => {
+              const isOpen = openTopicId === topic.id;
+              return (
+                <div key={topic.id} className="hl-sb__topic-card">
+                  <button
+                    type="button"
+                    className={`hl-sb__topic-header ${isOpen ? "hl-sb__topic-header--open" : ""}`}
+                    onClick={() => setOpenTopicId(isOpen ? null : topic.id)}
+                  >
+                    <span className="hl-sb__topic-name">{topic.topic}</span>
+                    <span className="hl-sb__topic-count">{topic.followUpQuestions.length}</span>
+                    <span className="hl-sb__topic-chevron">{isOpen ? "▼" : "▶"}</span>
+                  </button>
+                  {topic.reason && !isOpen && (
+                    <p className="hl-sb__topic-reason">{topic.reason}</p>
+                  )}
+                  {isOpen && (
+                    <div className="hl-sb__topic-questions">
+                      {topic.followUpQuestions.map((q, qi) => (
+                        <div key={qi} className={`hl-sb__followup hl-sb__followup--${q.type}`}>
+                          <span className="hl-sb__followup-type">{q.type === "follow_up" ? "Follow-up" : "Competency"}</span>
+                          <p className="hl-sb__followup-text">{q.question}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {session.insights.length > 0 && (
         <div className="hl-sb__section-block">

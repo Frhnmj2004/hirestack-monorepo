@@ -273,6 +273,8 @@ export function buildSessionFromInterview(
     insights: [],
     skillSignals: [],
     evidenceCards: [],
+    extractedTopics: [],
+    answerScores: [],
     scores: [...new Set(interview.topics.map((t) => t.name))].map((label) => ({
       label,
       score: 0,
@@ -327,6 +329,8 @@ export interface RealtimeCallbacks {
     skillSignals: string[];
     followUpQuestions: Array<{ question: string; type: string }>;
     competencyQuestions: Array<{ question: string; type: string }>;
+    extractedTopics?: Array<{ topic: string; reason?: string; followUpQuestions: Array<{ question: string; type: string }> }>;
+    answerScore?: { relevance: number; depth: number; specificity: number; overall: number; feedback: string };
   }, questionId: string) => void;
   onAlerts?: (alerts: AlertItem[]) => void;
   onEvidence?: (cards: EvidenceCard[]) => void;
@@ -462,9 +466,12 @@ export class InterviewRealtimeManager {
       skillSignals: string[];
       followUpQuestions: Array<{ question: string; type: string }>;
       competencyQuestions: Array<{ question: string; type: string }>;
+      extractedTopics?: Array<{ topic: string; reason?: string; followUpQuestions: Array<{ question: string; type: string }> }>;
+      answerScore?: { relevance: number; depth: number; specificity: number; overall: number; feedback: string };
     }) => {
+      const topicCount = data.extractedTopics?.length ?? 0;
       const total = (data.followUpQuestions?.length ?? 0) + (data.competencyQuestions?.length ?? 0);
-      if (total > 0) console.log("[HireLens] insights:", total, "follow-ups for question", this.currentQuestionId);
+      if (topicCount > 0 || total > 0) console.log("[HireLens] insights:", topicCount, "topics,", total, "follow-ups, score:", data.answerScore?.overall ?? "-");
       callbacks.onInsights?.(data, this.currentQuestionId);
     });
 
@@ -771,6 +778,8 @@ function makeMockSession(item: InterviewListItem): InterviewSession {
     insights: [],
     skillSignals: [],
     evidenceCards: [],
+    extractedTopics: [],
+    answerScores: [],
     scores: topics.map((t) => ({ label: t.name, score: 0, outOf: 10 })),
     startedAt: new Date().toISOString(),
     durationSeconds: 0,

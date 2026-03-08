@@ -6,7 +6,7 @@ export interface StreamCallbacks {
   onTurnDone?: (transcript: string) => void;
 }
 
-const TURN_SILENCE_MS = 2000;
+const TURN_SILENCE_MS = 4000;
 /** Max audio chunks to buffer before Deepgram socket is open (~5s at 50 chunks/5s) */
 const MAX_AUDIO_BUFFER_CHUNKS = 150;
 /** Send KeepAlive every 4s to prevent Deepgram 10s timeout (NET-0001) during silence */
@@ -67,7 +67,7 @@ export class StreamingService {
       language: 'en-US',
       smart_format: 'true' as const,
       interim_results: 'true' as const,
-      utterance_end_ms: '1000' as const,
+      utterance_end_ms: '3000' as const,
       encoding: 'linear16',
       sample_rate: 16000,
     });
@@ -140,14 +140,19 @@ export class StreamingService {
       const rawTranscript = alt?.transcript ?? msg.transcript ?? '';
       const text = typeof rawTranscript === 'string' ? rawTranscript.trim() : String(rawTranscript).trim();
       const isFinal = msg.is_final ?? alt?.is_final ?? false;
-      // UtteranceEnd: speaker stopped (word-timing gap). Flush buffer if we have one and never got speech_final.
+      // UtteranceEnd: speaker paused (word-timing gap). Don't flush immediately —
+      // reset the silence timer so short pauses between sentences don't split the turn.
       if (msg.type === 'UtteranceEnd') {
         if (state.buffer) {
-          state.callbacks.onTurnDone?.(state.buffer);
-          state.buffer = '';
+          state.timer && clearTimeout(state.timer);
+          state.timer = setTimeout(() => {
+            state.timer = null;
+            if (state.buffer) {
+              state.callbacks.onTurnDone?.(state.buffer);
+              state.buffer = '';
+            }
+          }, TURN_SILENCE_MS);
         }
-        state.timer && clearTimeout(state.timer);
-        state.timer = null;
         return;
       }
       if (!text) {

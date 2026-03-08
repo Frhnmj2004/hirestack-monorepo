@@ -79,12 +79,25 @@ export class AssistGateway implements OnGatewayConnection, OnGatewayDisconnect {
             activeQuestion: q,
             candidateAnswer: transcript,
           });
-          console.log('[AssistGateway] Pipeline done — insights:', result.pipelineA.followUpQuestions?.length ?? 0, 'evidence:', result.pipelineB.evidenceCards?.length ?? 0, 'claims:', result.pipelineB.newClaims?.length ?? 0, 'alerts:', result.pipelineB.contradictions?.length ?? 0);
+          console.log('[AssistGateway] Pipeline done — topics:', result.pipelineA.extractedTopics?.length ?? 0, 'insights:', result.pipelineA.followUpQuestions?.length ?? 0, 'evidence:', result.pipelineB.evidenceCards?.length ?? 0, 'claims:', result.pipelineB.newClaims?.length ?? 0, 'alerts:', result.pipelineB.contradictions?.length ?? 0, 'score:', result.pipelineA.answerScore?.overall ?? '-');
           client.emit('insights', result.pipelineA);
           client.emit('evidence', result.pipelineB.evidenceCards);
           client.emit('new_claims', result.pipelineB.newClaims);
           if (result.pipelineB.contradictions?.length) {
             client.emit('alerts', result.pipelineB.contradictions);
+          }
+          if (result.pipelineA.answerScore) {
+            const questionId = q || '';
+            client.emit('scores', {
+              questionId,
+              scores: [
+                { label: 'Relevance', score: result.pipelineA.answerScore.relevance, outOf: 10 },
+                { label: 'Depth', score: result.pipelineA.answerScore.depth, outOf: 10 },
+                { label: 'Specificity', score: result.pipelineA.answerScore.specificity, outOf: 10 },
+                { label: 'Overall', score: result.pipelineA.answerScore.overall, outOf: 10 },
+              ],
+              feedback: result.pipelineA.answerScore.feedback,
+            });
           }
         } catch (err) {
           console.error('[AssistGateway] Pipeline error:', err instanceof Error ? err.message : err);
